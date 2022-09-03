@@ -137,6 +137,13 @@ string OperationBase::getPath(const string &sgPrefix, int sgIdx, int deviceIdx) 
     return string(pathStr);
 }
 
+string OperationBase::getPath(const string &sgPrefix, int sgIdx) {
+    char pathStr[64];
+    snprintf(pathStr, 64, "root.cpp.%ssg%03d", sgPrefix.c_str(), sgIdx);
+    return string(pathStr);
+}
+
+
 string OperationBase::getSensorStr(int sensorIdx) {
     char sensorStr[64];
     snprintf(sensorStr, 64, "s%03d", sensorIdx);

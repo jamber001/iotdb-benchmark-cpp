@@ -13,24 +13,44 @@
 #include "operationBase.hpp"
 #include "insertTabletsOperation.hpp"
 #include "insertTabletOperation.hpp"
+#include "insertTabletOperation2.hpp"
 
 
 using namespace std;
 
 bool cleanAllSG(Session &session) {
+//    vector<string> storageGroups;
+//    storageGroups.emplace_back("root.cpp");
+//    try {
+//    session.deleteStorageGroups(storageGroups);
+//    } catch (const exception &e) {
+//        if (string(e.what()).find("Path [root.cpp] does not exist") != string::npos) {
+//            return true;
+//        }
+//        info_log("cleanAllSG(), error: %s", e.what());
+//        return false;
+//    }
+//    return true;
+
+
     string DELETE_ALL_SG_SQL = "delete storage group root.**";
+    //string DELETE_ALL_SG_SQL = "delete storage group root.cpp.**;";
 
     try {
         std::unique_ptr <SessionDataSet> dataset = session.executeQueryStatement(DELETE_ALL_SG_SQL);
+        cout << "00" << endl;
         bool isExisted = dataset->hasNext();
+        cout << "11" << endl;
         dataset->closeOperationHandle();
+        cout << "22" << endl;
         return isExisted;
     }
     catch (const exception &e) {
-        if (string(e.what()).find("Path [root.**] does not exist")) {
+        if (string(e.what()).find("Path [root.**] does not exist") != string::npos) {
+        //if (string(e.what()).find("Path [root.cpp.**] does not exist") != string::npos) {
             return true;
         }
-        info_log("cleanDB(), error: %s", e.what());
+        info_log("cleanAllSG(), error: %s", e.what());
         return false;
     }
 
@@ -76,7 +96,7 @@ bool getCfgGroup(EasyCfgBase &config, const string &prefix, WorkerCfg &workerCfg
         return false;
     }
     workerCfg.batchSize = config.GetParamInt(prefix + "BATCH_SIZE");
-    workerCfg.startTimestamp = config.GetParamInt(prefix + "START_TIMESTAMP");
+    workerCfg.startTimestamp = config.GetParamInt64(prefix + "START_TIMESTAMP");
     workerCfg.loopIntervalMs = config.GetParamInt(prefix + "LOOP_INTERVAL_MS");
     workerCfg.loopNum = config.GetParamInt(prefix + "LOOP_NUM");
 
@@ -110,7 +130,7 @@ int main() {
     WorkerCfg tabletCfg;
     if (getCfgGroup(config, "TABLET_", tabletCfg)) {
         show("Read TABLET Configuration: Succ!\n");
-        OperationList.emplace_back(new InsertTabletOperation(serverCfg, tabletCfg));
+        OperationList.emplace_back(new InsertTabletOperation2(serverCfg, tabletCfg));
     } else {
         show("Read TABLET Configuration: Disable.\n");
     }
@@ -127,6 +147,7 @@ int main() {
     show(" (%.3fs) \n", (endTime - startTime)/1000000.0);
 
     sleep(1);
+
 
     show("\n== Create sessions ==\n");
     for (auto &op : OperationList) {
@@ -161,7 +182,6 @@ int main() {
     for (uint i = 0; i < OperationList.size(); i++) {
         opFinished.push_back(i);
     }
-
     while (opFinished.size() > 0) {
         for (auto itr = opFinished.begin(); itr != opFinished.end();) {
             auto &op = OperationList[*itr];

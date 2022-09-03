@@ -24,6 +24,8 @@ bool InsertTabletsOperation::createSchema() {
     tsEncodings.reserve(count);
     compressionTypes.reserve(count);
     for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
+        string sgPath= getPath(sgPrefix, sgIdx);
+        session->setStorageGroup(sgPath);
         for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
             for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
                 string path= getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
