@@ -26,6 +26,9 @@ public:
     bool GetParamInt(const string &paramName, int &value);        //get parameter as Int
     int GetParamInt(const string &paramName);        //get parameter as Int
 
+    bool GetParamInt64(const string &paramName, int64_t &value);
+    int64_t GetParamInt64(const string &paramName);
+
     bool GetParamBool(const string &paramName, bool &value);     //get parameter as Bool
     bool GetParamBool(const string &paramName);
 

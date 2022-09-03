@@ -183,6 +183,27 @@ int EasyCfgBase::GetParamInt(const string &paramName) {
     return 0;
 }
 
+bool EasyCfgBase::GetParamInt64(const string &paramName, int64_t &value) {
+    string strValue;
+    if (GetParamStr(paramName, strValue)) {
+        value = atoll(strValue.c_str());
+        return true;
+    }
+
+    return false;
+}
+
+int64_t EasyCfgBase::GetParamInt64(const string &paramName) {
+    int64_t value = 0;
+    if (GetParamInt64(paramName, value)) {
+        return value;
+    }
+
+    info_log("EasyCfgBase::GetParamInt64(), fatal error, abort(). Miss paramName=%s", paramName.c_str());
+    abort();
+    return 0;
+}
+
 bool EasyCfgBase::GetParamBool(const string &paramName, bool &value) {
     string strValue;
     if (GetParamStr(paramName, strValue)) {

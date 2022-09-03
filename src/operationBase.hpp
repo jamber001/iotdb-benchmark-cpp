@@ -48,6 +48,7 @@ public:
 
     static string getPath(const string &sgPrefix, int sgIdx, int deviceIdx, int sensorIdx);
     static string getPath(const string &sgPrefix, int sgIdx, int deviceIdx);
+    static string getPath(const string &sgPrefix, int sgIdx);
     static string getSensorStr(int sensorIdx);
 
     unsigned long long getSuccOperationCount() { return succOperationCount; };
