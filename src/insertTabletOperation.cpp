@@ -13,7 +13,7 @@ bool InsertTabletOperation::createSchema() {
         return false;
     }
 
-    Session *session = sessions[0].get();
+    shared_ptr<Session> session = sessions[0];
 
     int count = workerCfg.storageGroupNum * workerCfg.deviceNum * workerCfg.sensorNum;
     vector <string> paths;
@@ -26,6 +26,7 @@ bool InsertTabletOperation::createSchema() {
     for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
         string sgPath= getPath(sgPrefix, sgIdx);
         session->setStorageGroup(sgPath);
+        setSgTTL(*session, sgPath, workerCfg.sgTTL);
         for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
             for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
                 string path= getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
@@ -48,29 +49,6 @@ bool InsertTabletOperation::createSchema() {
 }
 
 
-void InsertTabletOperation::worker(int threadIdx) {
-    debug_log("Enter InsertTabletOperation::worker(%d)", threadIdx);
-
-    shared_ptr<Session> &session= sessions[threadIdx % sessions.size()];
-
-    int64_t startTs = workerCfg.startTimestamp;
-    for (int i = 0; i < workerCfg.loopNum; ++i) {
-        for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
-            for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
-                if ((sgIdx % workerCfg.sessionNum) == threadIdx) {
-                    insertTabletBatch(session, sgIdx, deviceIdx, startTs);
-                }
-            }
-        }
-        startTs += workerCfg.batchSize;
-
-        if (workerCfg.loopIntervalMs > 0 ) {
-            usleep(workerCfg.loopIntervalMs * 1000);
-        }
-    }
-
-}
-
 void InsertTabletOperation::prepareData() {
     schemaList4Device.reserve(workerCfg.sensorNum);
     for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
@@ -79,21 +57,21 @@ void InsertTabletOperation::prepareData() {
         schemaList4Device.emplace_back(sensorStr, getTsDataType(workerCfg.dataTypeList[typeIdx]));
     }
 
-    //=========================
+    //== Prepare requestList ===
     tabletList.reserve(workerCfg.sessionNum);
-    for (int i = 0; i < workerCfg.sessionNum; ++i) {
-        tabletList.emplace_back("sg", schemaList4Device, workerCfg.batchSize);
-        Tablet &tablet = tabletList[i];
-
+    requestList.resize(workerCfg.sessionNum);
+    for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
+        tabletList.emplace_back("fakeDeviceId", schemaList4Device, workerCfg.batchSize);
+        Tablet &tablet = *tabletList.rbegin();
         for (int64_t i = 0; i < workerCfg.batchSize; i++) {
             size_t rowIdx = tablet.rowSize++;
-            tablet.timestamps[rowIdx] = i;
+            tablet.timestamps[rowIdx] = workerCfg.startTimestamp + i;
 
             int randInt = rand();
             for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
                 switch (schemaList4Device[sensorIdx].second) {
                     case TSDataType::BOOLEAN: {
-                        bool randBool = (randInt % 2 == 0);
+                        bool randBool = (randInt % 2 == 1) ? true : false;
                         tablet.addValue(sensorIdx, rowIdx, &randBool);
                         break;
                     }
@@ -111,12 +89,17 @@ void InsertTabletOperation::prepareData() {
                         break;
                     }
                     case TSDataType::DOUBLE: {
-                        double randDouble = randInt / 99.9;
+                        double randDouble = randInt / 13.3;
                         tablet.addValue(sensorIdx, rowIdx, &randDouble);
                         break;
                     }
                     case TSDataType::TEXT: {
-                        string randStr = "s" + to_string(randInt);
+                        string randStr(workerCfg.textDataLen, 's');
+                        char *p = (char *) randStr.c_str();
+                        for (uint i = 0; i < randStr.size(); i = i + 2) {
+                            *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
+                            *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
+                        }
                         tablet.addValue(sensorIdx, rowIdx, &randStr);
                         break;
                     }
@@ -126,92 +109,126 @@ void InsertTabletOperation::prepareData() {
                 }
             }
         }
+        Session::buildInsertTabletReq(requestList[sgIdx], 0ll, tablet, true);
+    }
+}
+
+void InsertTabletOperation::worker(int threadIdx) {
+    debug_log("Enter InsertTabletOperation_old::worker(%d)", threadIdx);
+
+    shared_ptr<Session> &session= sessions[threadIdx % sessions.size()];
+
+    //int64_t startTs = workerCfg.startTimestamp;  //TODO:
+    int64_t startTs = (workerCfg.startTimestamp >> 8) << 8 ;
+    for (int i = 0; i < workerCfg.loopNum; ++i) {
+        for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
+            for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
+                if ((sgIdx % workerCfg.sessionNum) == threadIdx) {
+                    if (workerCfg.workMode == 0) {
+                        insertTabletBatch(session, sgIdx, deviceIdx, startTs);
+                    } else {
+                        insertTabletBatch2(session, sgIdx, deviceIdx, startTs);
+                    }
+                }
+            }
+        }
+        startTs += workerCfg.batchSize;
+
+        if (workerCfg.loopIntervalMs > 0 ) {
+            usleep(workerCfg.loopIntervalMs * 1000);
+        }
     }
 
 }
 
-
 void InsertTabletOperation::insertTabletBatch(shared_ptr<Session> &session, int sgIdx, int deviceIdx, int64_t startTs) {
-    Tablet &tablet = tabletList[sgIdx];
-    tablet.deviceId = getPath(sgPrefix, sgIdx, deviceIdx);
+    TSInsertTabletReq &tsInsertTabletReq = requestList[sgIdx];
+    tsInsertTabletReq.sessionId = session->getSessionId();
+    tsInsertTabletReq.prefixPath = move(getPath(sgPrefix, sgIdx, deviceIdx));
 
-    int rowIdx = 0;
-    for (int i = 0; i < workerCfg.batchSize; i++) {
-        tablet.timestamps[rowIdx++] = startTs + i;
+    char *p0 = (char *) &startTs;
+    char *p1 = (char *) tsInsertTabletReq.timestamps.data() + 7;
+    bool needReset = false;
+    for (int i = 0; i < 8; ++i) {
+        if (*p0 != *p1) {
+            *p1 = *p0;
+            needReset = true;
+        }
+        p0++;
+        p1--;
+    }
 
-        if (rowIdx == (int) tablet.maxRowNumber) {
-            tablet.rowSize = rowIdx;
-            sendInsertTablet(session, tablet);
-            rowIdx = 0;
+    if (needReset) {
+        int64_t *time64Ptr = (int64_t *) tsInsertTabletReq.timestamps.data();
+        int64_t tpmInt64 = *time64Ptr;
+        for (uint i = 1; i < tsInsertTabletReq.timestamps.size() / 8; ++i) {
+            p1 = (char *) &tpmInt64;
+            if (++p1[7] == 0) {
+                if (++p1[6] == 0) {
+                    if (++p1[5] == 0) {
+                        if (++p1[4] == 0) {
+                            if (++p1[3] == 0) {
+                                if (++p1[2] == 0) {
+                                    if (++p1[1] == 0) {
+                                        ++p1[0];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            *(++time64Ptr) = tpmInt64;
         }
     }
 
-    if (rowIdx != 0) {
-        tablet.rowSize = rowIdx;
-        sendInsertTablet(session, tablet);
-    }
+    sendInsertTablet(session, tsInsertTabletReq);
 }
 
 void InsertTabletOperation::insertTabletBatch2(shared_ptr<Session> &session, int sgIdx, int deviceIdx, int64_t startTs) {
-    Tablet tablet(getPath(sgPrefix, sgIdx, deviceIdx), schemaList4Device, workerCfg.batchSize);
+    Tablet &tablet = tabletList[sgIdx];
+
+    tablet.deviceId = move(getPath(sgPrefix, sgIdx, deviceIdx));
     for (int64_t i = 0; i < workerCfg.batchSize; i++) {
-        size_t rowIdx = tablet.rowSize++;
-        tablet.timestamps[rowIdx] = startTs + i;
-
-        int randInt = rand();
-        for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-            switch (schemaList4Device[sensorIdx].second) {
-                case TSDataType::BOOLEAN: {
-                    bool randBool = (randInt % 2 == 0);
-                    tablet.addValue(sensorIdx, rowIdx, &randBool);
-                    break;
-                }
-                case TSDataType::INT32:
-                    tablet.addValue(sensorIdx, rowIdx, &randInt);
-                    break;
-                case TSDataType::INT64: {
-                    int64_t randInt64 = randInt * (int64_t) randInt;
-                    tablet.addValue(sensorIdx, rowIdx, &randInt64);
-                    break;
-                }
-                case TSDataType::FLOAT: {
-                    float randFloat = 1.11;//randInt / 33.3;
-                    tablet.addValue(sensorIdx, rowIdx, &randFloat);
-                    break;
-                }
-                case TSDataType::DOUBLE: {
-                    double randDouble = 2.22;//randInt / 99.9;
-                    tablet.addValue(sensorIdx, rowIdx, &randDouble);
-                    break;
-                }
-                case TSDataType::TEXT: {
-                    string randStr = "ss"; //""str" + to_string(randInt);
-                    tablet.addValue(sensorIdx, rowIdx, &randStr);
-                    break;
-                }
-                case TSDataType::NULLTYPE:
-                default:
-                    break;
-            }
-        }
-
-        if (tablet.rowSize == tablet.maxRowNumber) {
-            sendInsertTablet(session, tablet);
-            tablet.reset();
-        }
+        tablet.timestamps[i] = startTs + i;
     }
 
-    if (tablet.rowSize != 0) {
-        sendInsertTablet(session, tablet);
-        tablet.reset();
+    sendInsertTablet(session, tablet);
+}
+
+void InsertTabletOperation::sendInsertTablet(shared_ptr<Session> &session, TSInsertTabletReq &tsInsertTabletReq){
+    uint64_t pointCount =  tsInsertTabletReq.timestamps.size()/8u * workerCfg.sensorNum; //TODO:
+
+    try {
+        int64_t startTimeUs = getTimeUs();
+        session->insertTablet(tsInsertTabletReq);
+        addLatency(getTimeUs() - startTimeUs);
+        succOperationCount += 1;
+        succInsertPointCount += pointCount;
+    } catch (exception & e) {
+        failOperationCount ++;
+        failInsertPointCount += pointCount;
+
+        error_log("session exception: %s. Try to recover session.", e.what());
+        int retryNum = 60, retryIntervalMs = 2000;
+        if (reCreatedSession(session, retryNum, retryIntervalMs) ) {
+            info_log("Succeed to recover session after retry.");
+        }
+        else {
+            error_log("Can not recover session after %d retry. Exit.", retryNum);
+            exit(-1);
+        }
+
+        return;
     }
+
 }
 
 void InsertTabletOperation::sendInsertTablet(shared_ptr<Session> &session, Tablet &tablet) {
     uint64_t pointCount = tablet.rowSize * workerCfg.sensorNum;
 
     try {
-        uint64_t startTimeUs = getTimeUs();
+        int64_t startTimeUs = getTimeUs();
         session->insertTablet(tablet, true);
         addLatency(getTimeUs() - startTimeUs);
         succOperationCount += 1;

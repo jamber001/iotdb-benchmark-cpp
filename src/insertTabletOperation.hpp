@@ -3,34 +3,37 @@
 //
 
 
-#ifndef INSERTTABLETOPERATION_HPP
-#define INSERTTABLETOPERATION_HPP
+#ifndef INSERTTABLETOPERATION2_HPP
+#define INSERTTABLETOPERATION2_HPP
 
 #include "operationBase.hpp"
 #include <thread>
 
 class InsertTabletOperation : public OperationBase {
 public:
-    InsertTabletOperation(const ServerCfg &serverCfg, const WorkerCfg &workerCfg) : OperationBase("Tablet",
-                                                                                                   serverCfg,
-                                                                                                   workerCfg) {}
+    InsertTabletOperation(const ServerCfg &serverCfg, const WorkerCfg &workerCfg) : OperationBase("InsertTablet",
+                                                                                                  serverCfg,
+                                                                                                  workerCfg) {}
     bool createSchema() override;
 
     void worker(int threadIdx) override;
 
 private:
+    void prepareData();
+
     void insertTabletBatch(shared_ptr<Session> &session, int sgIdx, int deviceIdx, int64_t startTs);
     void insertTabletBatch2(shared_ptr<Session> &session, int sgIdx, int deviceIdx, int64_t startTs);
     void sendInsertTablet(shared_ptr<Session> &session, Tablet &tabletMap);
-
-    void prepareData();
+    void sendInsertTablet(shared_ptr<Session> &session, TSInsertTabletReq &tsInsertTabletReq);
 
 private:
     string sgPrefix = "tablet_";
 
     vector<pair<string, TSDataType::TSDataType>> schemaList4Device;
-    vector<Tablet>  tabletList;
+
+    vector<TSInsertTabletReq>  requestList;   //for mode1, sgIdx ==> TSInsertTabletReq
+    vector<Tablet>  tabletList;    //for mode2, sgIdx ==> Tablet
 };
 
 
-#endif //INSERTTABLETOPERATION_HPP
+#endif //INSERTTABLETOPERATION2_HPP

@@ -8,13 +8,12 @@ using namespace std;
 
 void OperationBase::startWorkers() {
     threads.reserve(workerCfg.sessionNum);
+
+    workerStartTimeUs = getTimeUs();
     for (int i = 0; i < workerCfg.sessionNum; ++i) {
         threads.emplace_back(OperationBase::thread_entrance, this, i);
     }
 }
-
-
-
 
 bool OperationBase::allWorkersFinished() {
     for (int i = 0; i < workerCfg.sessionNum; ++i) {
@@ -24,7 +23,6 @@ bool OperationBase::allWorkersFinished() {
     }
     return  true;
 }
-
 
 void OperationBase::waitForAllWorkersFinished() {
     for (int i = 0; i < workerCfg.sessionNum; ++i) {
@@ -57,7 +55,27 @@ bool OperationBase::createSessions() {
     for (int i = 0; i < workerCfg.sessionNum; ++i) {
         sessions.emplace_back(new Session(serverCfg.host, serverCfg.port, serverCfg.user, serverCfg.passwd));
         debug_log("sessions.size()=%lu, i=%d", sessions.size(), i);
-        (*sessions.rbegin())->open(false, 1000);  //enableRPCCompression=false, connectionTimeoutInMs=1000
+        (*sessions.rbegin())->open(serverCfg.rpcCompression, 1000);  //enableRPCCompression=false, connectionTimeoutInMs=1000
+    }
+
+    return true;
+}
+
+bool OperationBase::setSgTTL(Session &session, const string &sgPath, int64_t ttlValueMs) {
+    if (ttlValueMs <= 0) {
+        debug_log("ttlValueMs(%lld) <= 0, so not set TTL.", (long long) ttlValueMs);
+        return false;
+    }
+
+    //e.g. set ttl to root.sgcc.** 3600000
+    char sqlStr[64];
+    snprintf(sqlStr, sizeof(sqlStr), "set ttl to %s %lld", sgPath.c_str(), (long long) ttlValueMs);
+    try {
+        session.executeNonQueryStatement(sqlStr);
+    }
+    catch (const exception &e) {
+        error_log("cleanAllSG(), error: %s", e.what());  //TODO: maybe, IoTDB bug.
+        return false;
     }
 
     return true;
@@ -84,7 +102,7 @@ TSDataType::TSDataType OperationBase::getTsDataType(const string &typeStr) {
 }
 
 TSEncoding::TSEncoding OperationBase::getTsEncodingType(const string &typeStr) {
-    return TSEncoding::PLAIN;
+    //return TSEncoding::PLAIN;
 
     static unordered_map<string, TSEncoding::TSEncoding> mapStr2Type = {
             {"BOOLEAN", TSEncoding::RLE},
@@ -150,9 +168,9 @@ string OperationBase::getSensorStr(int sensorIdx) {
     return string(sensorStr);
 }
 
-void OperationBase::addLatency(int latencyUs) {
+void OperationBase::addLatency(int64_t latencyUs) {
     if (latencyUs < 0 ) {
-        error_log("Error latencyUs=%d", latencyUs);
+        error_log("Error latencyUs=%lld", (long long) latencyUs);
         return;
     }
 
@@ -175,6 +193,15 @@ void OperationBase::addLatency(int latencyUs) {
 
 void OperationBase::genLatencySum() {
     static uint permillageGoal[]={100,250,500,750,900, 950, 990, 999};
+
+    if (latencyCount  == 0) {   //If no point
+        for (auto it : permillageGoal ) {
+            permillagResulteMap[it] = 0.0;
+        }
+        avgLatencyMs = 0.0;
+        return;
+    }
+
     uint64_t count = 0;
     uint64_t latencySum = 0;
     uint permillageGoalIdx = 0;
@@ -182,7 +209,7 @@ void OperationBase::genLatencySum() {
     for (uint i = 0; i < latencyArray.size(); i++) {
         count += latencyArray[i];
         if (permillage <= (count * 1000) / latencyCount) {
-            permillageMap[permillage] = i / 100.0;
+            permillagResulteMap[permillage] = i / 100.0;
             permillageGoalIdx++;
             if (permillageGoalIdx >= sizeof(permillageGoal)) {
                 break;
