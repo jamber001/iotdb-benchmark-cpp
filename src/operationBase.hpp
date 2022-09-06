@@ -14,6 +14,7 @@
 #include "easyLog.hpp"
 #include "paramCfg.hpp"
 #include "Session.h"
+#include "easyCfgBase.hpp"
 
 using namespace std;
 
@@ -22,6 +23,7 @@ public:
     OperationBase(const string &opName, const ServerCfg &serverCfg, const WorkerCfg &workerCfg) : opName(opName),
                                                                                                   serverCfg(serverCfg),
                                                                                                   workerCfg(workerCfg) {
+        srand(time(NULL));
         latencyArray.resize(latencyArraySize, 0);
         threadEnd.resize(latencyArraySize, false);
     }
@@ -30,6 +32,7 @@ public:
 
     string getOpName() { return opName;};
     const WorkerCfg& getWorkerCfg() { return workerCfg;};
+    int64_t getWorkerTimeUs() { return workerEndTimeUs - workerStartTimeUs; };
 
     bool createSessions();
     bool reCreatedSession(shared_ptr<Session> &session, int retryNum, int retryIntervalMs) ;
@@ -42,6 +45,7 @@ public:
 
     virtual void worker(int threadIdx) = 0;
 
+    bool setSgTTL(Session &session, const string &sgPath, int64_t ttlValueMs);
     static TSDataType::TSDataType getTsDataType(const string &typeStr);
     static TSEncoding::TSEncoding getTsEncodingType(const string &typeStr);
     static CompressionType::CompressionType getCompressionType(const string &typeStr);
@@ -56,7 +60,7 @@ public:
     unsigned long long getSuccInsertPointCount() { return succInsertPointCount; };
     unsigned long long getFailInsertPointCount() { return failInsertPointCount; };
 
-    void addLatency(int latencyUs);
+    void addLatency(int64_t latencyUs);
     void genLatencySum();
 
 
@@ -64,7 +68,11 @@ public:
     uint getminLatencyUs() { return minLatencyUs; };
     uint getmaxLatencyUs() { return maxLatencyUs; };
     uint getLatencyMaxRangUs() { return (latencyArraySize - 1) * 10; };
-    const map<int, float> &getPermillageMap() { return permillageMap; };
+    const map<int, float> &getPermillageMap() { return permillagResulteMap; };
+
+public:
+    int64_t workerStartTimeUs;
+    atomic_llong workerEndTimeUs;
 
 protected:
     string opName;
@@ -84,7 +92,7 @@ protected:
     //== For save latency data,
     static const int latencyArraySize = 100000;
     float  avgLatencyMs{0.0} ;
-    map<int, float> permillageMap;
+    map<int, float> permillagResulteMap;
 
     mutex latencyDataLock;      //this lock will save below variables
     vector<uint64_t> latencyArray;  //record the count per 0.01ms step
@@ -95,6 +103,7 @@ private:
     static void thread_entrance(OperationBase *opBase, int threadIdx) {
         opBase->worker(threadIdx);
         opBase->threadEnd[threadIdx] = true;
+        opBase->workerEndTimeUs = getTimeUs();
     };
 };
 

@@ -7,7 +7,11 @@
 #include <string>
 #include <stdint.h>
 #include <sys/time.h>
+#include <string>
 
-uint64_t getTimeUs();
+using namespace std;
+
+int64_t getTimeUs();
+string getTimeStr();
 
 #endif //UTILITY_HPP

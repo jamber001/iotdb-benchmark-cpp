@@ -26,6 +26,7 @@ bool InsertTabletsOperation::createSchema() {
     for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
         string sgPath= getPath(sgPrefix, sgIdx);
         session->setStorageGroup(sgPath);
+        setSgTTL(*session, sgPath, workerCfg.sgTTL);
         for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
             for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
                 string path= getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
@@ -42,6 +43,8 @@ bool InsertTabletsOperation::createSchema() {
 
     session->createMultiTimeseries(paths, tsDataTypes, tsEncodings, compressionTypes, nullptr, nullptr, nullptr, nullptr);
 
+    prepareData();
+
     return true;
 }
 
@@ -53,7 +56,6 @@ void InsertTabletsOperation::worker(int threadIdx) {
 
     int64_t startTs = workerCfg.startTimestamp;
     for (int i = 0; i < workerCfg.loopNum; ++i) {
-        //show("threadIdx=%d, loopIdx=%d.", threadIdx, i);
         for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
             if ((sgIdx % workerCfg.sessionNum) == threadIdx) {
                 insertTabletsBatch(session, sgIdx, startTs);
@@ -65,11 +67,9 @@ void InsertTabletsOperation::worker(int threadIdx) {
             usleep(workerCfg.loopIntervalMs * 1000);
         }
     }
-
 }
 
-
-void InsertTabletsOperation::insertTabletsBatch(shared_ptr<Session> &session, int sgIdx, int64_t startTs) {
+void InsertTabletsOperation::prepareData() {
     vector<pair<string, TSDataType::TSDataType>> schemaList4Device;
     schemaList4Device.reserve(workerCfg.sensorNum);
     for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
@@ -78,80 +78,89 @@ void InsertTabletsOperation::insertTabletsBatch(shared_ptr<Session> &session, in
         schemaList4Device.emplace_back(sensorStr, getTsDataType(workerCfg.dataTypeList[typeIdx]));
     }
 
-    int deviceNum = workerCfg.deviceNum;
-    vector<Tablet> tabletList;
-    unordered_map<string, Tablet *> tabletMap;
-    tabletList.reserve(deviceNum);
-    tabletMap.reserve(deviceNum);
-    for (int deviceIdx = 0; deviceIdx < deviceNum; ++deviceIdx) {
-        string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
-        tabletList.emplace_back(devicePath, schemaList4Device, workerCfg.batchSize); //maxRowNumber=workerCfg.batchSize, _isAligned = false
-        tabletMap[devicePath] = &tabletList[deviceIdx];
-    }
+    tabletMapList.resize(workerCfg.storageGroupNum);
+    tabletsList.resize(workerCfg.storageGroupNum);
+    for (int sgIdx=0; sgIdx<workerCfg.storageGroupNum; sgIdx++) {
+        vector<Tablet> &tablets = tabletsList[sgIdx];
+        unordered_map<string, Tablet *> &tabletMap = tabletMapList[sgIdx];
+        tablets.reserve(workerCfg.deviceNum);
+        tabletMap.reserve(workerCfg.deviceNum);
+        for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
+            string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
+            tablets.emplace_back(devicePath, schemaList4Device, workerCfg.batchSize); //maxRowNumber=workerCfg.batchSize, _isAligned = false
+            tabletMap[devicePath] = &tablets[deviceIdx];
+        }
 
-    for (int i =0; i< workerCfg.batchSize; ++i) {
-        for (int deviceIdx = 0; deviceIdx < deviceNum; ++deviceIdx) {
-            Tablet &tablet = tabletList[deviceIdx];
-            size_t rowIdx = tablet.rowSize++;
-            tablet.timestamps[rowIdx] = startTs + i;
+        for (int i = 0; i < workerCfg.batchSize; ++i) {
+            for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
+                Tablet &tablet = tablets[deviceIdx];
+                size_t rowIdx = tablet.rowSize++;
+                tablet.timestamps[rowIdx] = workerCfg.startTimestamp + i;
 
-            int randInt = rand();
-            for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-                //show("sensorIdx = %d", sensorIdx);
-                switch (schemaList4Device[sensorIdx].second) {
-                    case TSDataType::BOOLEAN: {
-                        bool randBool = (randInt % 2 == 0);
-                        tablet.addValue(sensorIdx, rowIdx, &randBool);
-                        break;
+                int randInt = rand();
+                for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
+                    switch (schemaList4Device[sensorIdx].second) {
+                        case TSDataType::BOOLEAN: {
+                            bool randBool = (randInt % 2 == 1) ? true: false;
+                            tablet.addValue(sensorIdx, rowIdx, &randBool);
+                            break;
+                        }
+                        case TSDataType::INT32:
+                            tablet.addValue(sensorIdx, rowIdx, &randInt);
+                            break;
+                        case TSDataType::INT64: {
+                            int64_t randInt64 = randInt * (int64_t) randInt;
+                            tablet.addValue(sensorIdx, rowIdx, &randInt64);
+                            break;
+                        }
+                        case TSDataType::FLOAT: {
+                            float randFloat = randInt / 33.3;
+                            tablet.addValue(sensorIdx, rowIdx, &randFloat);
+                            break;
+                        }
+                        case TSDataType::DOUBLE: {
+                            double randDouble = randInt / 3.3;
+                            tablet.addValue(sensorIdx, rowIdx, &randDouble);
+                            break;
+                        }
+                        case TSDataType::TEXT: {
+                            string randStr(workerCfg.textDataLen, 's');
+                            char *p = (char *) randStr.c_str();
+                            for (uint i = 0; i < randStr.size(); i = i + 2) {
+                                *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
+                                *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
+                            }
+                            tablet.addValue(sensorIdx, rowIdx, &randStr);
+                            break;
+                        }
+                        case TSDataType::NULLTYPE:
+                        default:
+                            break;
                     }
-                    case TSDataType::INT32:
-                        tablet.addValue(sensorIdx, rowIdx, &randInt);
-                        break;
-                    case TSDataType::INT64: {
-                        int64_t randInt64 = randInt * (int64_t) randInt;
-                        tablet.addValue(sensorIdx, rowIdx, &randInt64);
-                        break;
-                    }
-                    case TSDataType::FLOAT: {
-                        float randFloat = randInt / 33.3;
-                        tablet.addValue(sensorIdx, rowIdx, &randFloat);
-                        break;
-                    }
-                    case TSDataType::DOUBLE: {
-                        double randDouble = randInt / 99.9;
-                        tablet.addValue(sensorIdx, rowIdx, &randDouble);
-                        break;
-                    }
-                    case TSDataType::TEXT: {
-                        string randStr = "str" + to_string(randInt);
-                        tablet.addValue(sensorIdx, rowIdx, &randStr);
-                        break;
-                    }
-                    case TSDataType::NULLTYPE:
-                    default:
-                        break;
                 }
             }
         }
+    }
 
-        if (tabletList[0].rowSize >= tabletList[0].maxRowNumber) {
-            sendInsertTablets(session, tabletMap);
 
-            for (auto it :tabletMap) {
-                it.second->reset();
-            }
+}
+
+void InsertTabletsOperation::insertTabletsBatch(shared_ptr<Session> &session, int sgIdx, int64_t startTs) {
+    unordered_map<string, Tablet *> &tabletMap = tabletMapList[sgIdx];
+    for (auto itr : tabletMap) {
+        Tablet &tablet = *(itr.second);
+        for (int i = 0; i < workerCfg.batchSize; i++) {
+            tablet.timestamps[i] = startTs + i;
         }
     }
 
-    if (tabletList[0].rowSize != 0) {
-        sendInsertTablets(session, tabletMap);
-    }
+    sendInsertTablets(session, tabletMap);
 }
 
 void InsertTabletsOperation::sendInsertTablets(shared_ptr<Session> &session, unordered_map<string, Tablet *> &tabletMap) {
     uint64_t pointCount = tabletMap.begin()->second->rowSize * workerCfg.sensorNum * workerCfg.deviceNum;
     try {
-        uint64_t startTimeUs = getTimeUs();
+        int64_t startTimeUs = getTimeUs();
         session->insertTablets(tabletMap, true);
         addLatency(getTimeUs() - startTimeUs);
         succOperationCount += 1;
