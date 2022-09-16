@@ -23,6 +23,7 @@
 #include <vector>
 #include <map>
 #include <mutex>
+#include <set>
 #include "easyLog.hpp"
 
 using namespace std;
@@ -32,24 +33,32 @@ public:
     EasyCfgBase(const string &cfgFileName, bool isRelativepath = true);
 
     // static EasyCfgBase* GetInstance();
-    static bool GetExePath(string &path);
-    static bool ParseParamList(const string &listStr, vector<string> &out);
+    static bool getExePath(string &path);
 
-    bool GetParamStr(const string &paramName, string &value);     //get parameter as string
-    string GetParamStr(const string &paramName);
+    // Parse value bunch. e.g. "123:abc:true" => ["123", "abc", "true"]
+    static bool parseValueBunch(const string &listStr, vector<string> &out);
 
-    bool GetParamLL(const string &paramName, long long &value);   //get parameter as Long Long
-    long long GetParamLL(const string &paramName);
+    void getSectionList(vector<string> &out);
+    bool getKVMap(map<string, string> &out, const string &section = "");
 
-    bool GetParamInt(const string &paramName, int &value);        //get parameter as Int
-    int GetParamInt(const string &paramName);        //get parameter as Int
 
-    bool GetParamBool(const string &paramName, bool &value);     //get parameter as Bool
-    bool GetParamBool(const string &paramName);
+    bool getParamStr(const string &paramName, string &value, const string &section = "");
+    string getParamStr(const string &paramName, const string &section = "");
 
-    bool GetParamDouble(const string &paramName, double &value);  //get parameter as Double
+    bool getParamLL(const string &paramName, long long &value, const string &section = "");   //get parameter as Long Long
+    long long getParamLL(const string &paramName, const string &section = "");
 
-    bool InsertParamStr(const string &paramName, const string &value, bool notReplace = false);
+    bool getParamInt(const string &paramName, int &value, const string &section = "");        //get parameter as Int
+    int getParamInt(const string &paramName, const string &section = "");
+
+    bool getParamBool(const string &paramName, bool &value, const string &section = "");     //get parameter as Bool
+    bool getParamBool(const string &paramName, const string &section = "");
+
+    bool getParamDouble(const string &paramName, double &value, const string &section = "");  //get parameter as Double
+    double getParamDouble(const string &paramName, const string &section = "");
+
+
+    bool insertParamStr(const string &paramName, const string &value, const string &section, bool notReplace = false);
 
     void printAllParam();       //print all parameters to stdout, mainly for testing
 
@@ -63,13 +72,15 @@ private:
     bool readConfigFile(const char *fileName);
 
     bool parserKV(string line, string &key, string &value);
+    bool parserSKV(string line, string &section, string &key, string &value);
 
     string trim(const string &s);
 
 protected:
     //static EasyCfgBase* _instance;
     string _cfgFile;
-    map <string, string> _key2Value;
+    vector<string> _sectionList;   //for saving original section sequence
+    map<string, map<string,string>> _skvMap;  //Section => Key => Value
 };
 
 

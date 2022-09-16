@@ -26,13 +26,11 @@
 #include "paramCfg.hpp"
 #include "easyUtility.hpp"
 #include "Session.h"
-
 #include "operationBase.hpp"
 #include "insertTabletOperation.hpp"
 #include "insertRecords.hpp"
 #include "insertRecord.hpp"
 #include "insertTabletsOperation.hpp"
-
 
 using namespace std;
 
@@ -110,52 +108,51 @@ int main() {
     flag_Debug = true;
 
     initEasyLog();
-    EasyCfgBase config("../conf/config.properties");
+    EasyCfgBase config("../conf/main.conf");
 
     printf("\n== Read base Configuration ==\n");
     ServerCfg serverCfg;
-    serverCfg.host = config.GetParamStr("HOST");
-    serverCfg.port = config.GetParamInt("PORT");
+    serverCfg.host = config.getParamStr("HOST");
+    serverCfg.port = config.getParamInt("PORT");
     serverCfg.user = "root";
     serverCfg.passwd = "root";
-    serverCfg.rpcCompression = config.GetParamInt("RPC_COMPRESSION");
+    serverCfg.rpcCompression = config.getParamInt("RPC_COMPRESSION");
     printf(" Server Address: %s:%d\n", serverCfg.host.c_str(), serverCfg.port);
 
 
     printf("\n== Read Worker Configuration ==\n");
     vector<shared_ptr<OperationBase>> OperationList;
-    WorkerCfg insertTabletsCfg;
-    if (insertTabletsCfg.extractCfg(config, "TABLETS_")) {
-        printf(" %-13s ==> %s\n","InsertTablets", "Succ!");
-        OperationList.emplace_back(new InsertTabletsOperation(serverCfg, insertTabletsCfg));
-    } else {
-        printf(" %-13s ==> %s\n","InsertTablets", "Disable!");
+    vector<TaskCfg> taskCfgList;
+
+    vector<string> sectionList;
+    config.getSectionList(sectionList);
+    taskCfgList.reserve(sectionList.size());
+    for (string &section : sectionList) {
+        if (section.empty()) {
+            continue;
+        }
+
+        TaskCfg taskCfg;
+        printf(" %-15s ==>  ", section.c_str());
+        if (taskCfg.extractCfg(section, config)) {
+            taskCfgList.push_back(taskCfg);
+            printf("%s\n", "Succ!");
+        } else {
+            printf("%s\n", "Disable!");
+        }
     }
 
-    WorkerCfg insertTabletCfg;
-    if (insertTabletCfg.extractCfg(config, "TABLET_")) {
-        printf(" %-13s ==> %s\n","InsertTablet", "Succ!");
-        OperationList.emplace_back(new InsertTabletOperation(serverCfg, insertTabletCfg));
-    } else {
-        printf(" %-13s ==> %s\n","InsertTablet", "Disable!");
+    for (TaskCfg &taskCfg: taskCfgList) {
+        if ("TABLET" == taskCfg.taskType) {
+            OperationList.emplace_back(new InsertTabletsOperation(serverCfg, taskCfg));
+        } else if ("TABLETS" == taskCfg.taskType) {
+            OperationList.emplace_back(new InsertTabletOperation(serverCfg, taskCfg));
+        } else if ("RECORD" == taskCfg.taskType) {
+            OperationList.emplace_back(new InsertRecordOperation(serverCfg, taskCfg));
+        } else if ("RECORDS" == taskCfg.taskType) {
+            OperationList.emplace_back(new InsertRecordsOperation(serverCfg, taskCfg));
+        }
     }
-
-    WorkerCfg insertRecordsCfg;
-    if (insertRecordsCfg.extractCfg(config, "RECORDS_")) {
-        printf(" %-13s ==> %s\n","InsertRecords", "Succ!");
-        OperationList.emplace_back(new InsertRecordsOperation(serverCfg, insertRecordsCfg));
-    } else {
-        printf(" %-13s ==> %s\n","InsertRecords", "Disable!");
-    }
-
-    WorkerCfg insertRecordCfg;
-    if (insertRecordCfg.extractCfg(config, "RECORD_")) {
-        printf(" %-13s ==> %s\n","InsertRecord", "Succ!");
-        OperationList.emplace_back(new InsertRecordOperation(serverCfg, insertRecordCfg));
-    } else {
-        printf(" %-13s ==> %s\n","InsertRecord", "Disable!");
-    }
-
 
     int64_t startTime, endTime;
     printf("\n== Clean all SG ==\n");
@@ -192,7 +189,7 @@ int main() {
 
     sleep(1);
 
-    printf("\n== Insert data ==\n");
+    printf("\n== Start all tasks ==\n");
     startTime = getTimeUs();
     for (auto &op: OperationList) {
         printf(" %-14s: Begin to insert data ... (%s)\n", op->getOpName().c_str(), getTimeStr().c_str());

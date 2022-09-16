@@ -27,9 +27,9 @@ using namespace  std;
 
 class InsertRecordOperation : public OperationBase {
 public:
-    InsertRecordOperation(const ServerCfg &serverCfg, const WorkerCfg &workerCfg) : OperationBase("InsertRecord",
-                                                                                                   serverCfg,
-                                                                                                   workerCfg) {};
+    InsertRecordOperation(const ServerCfg &serverCfg, const TaskCfg &workerCfg) : OperationBase("InsertRecord",
+                                                                                                serverCfg,
+                                                                                                workerCfg) {};
 
     bool createSchema() override;
 

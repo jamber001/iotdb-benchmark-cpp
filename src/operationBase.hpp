@@ -35,9 +35,9 @@ using namespace std;
 
 class OperationBase {
 public:
-    OperationBase(const string &opName, const ServerCfg &serverCfg, const WorkerCfg &workerCfg) : opName(opName),
-                                                                                                  serverCfg(serverCfg),
-                                                                                                  workerCfg(workerCfg) {
+    OperationBase(const string &opName, const ServerCfg &serverCfg, const TaskCfg &workerCfg) : opName(opName),
+                                                                                                serverCfg(serverCfg),
+                                                                                                workerCfg(workerCfg) {
         srand(time(NULL));
         latencyArray.resize(latencyArraySize, 0);
         threadEnd.resize(latencyArraySize, false);
@@ -46,7 +46,7 @@ public:
     virtual ~OperationBase() { };
 
     string getOpName() { return opName;};
-    const WorkerCfg& getWorkerCfg() { return workerCfg;};
+    const TaskCfg& getWorkerCfg() { return workerCfg;};
     int64_t getWorkerTimeUs() { return workerEndTimeUs - workerStartTimeUs; };
 
     bool createSessions();
@@ -93,7 +93,7 @@ protected:
     string opName;
 
     ServerCfg serverCfg;
-    WorkerCfg workerCfg;
+    TaskCfg workerCfg;
 
     vector <thread> threads;
     vector <bool> threadEnd;

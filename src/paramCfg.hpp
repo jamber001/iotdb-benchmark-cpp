@@ -36,7 +36,10 @@ struct ServerCfg {
 };
 
 
-struct WorkerCfg {
+struct TaskCfg {
+    string taskName;
+    string taskType;
+
     int workMode = 0;    //optional parameter
     int sessionNum = 5;
 
@@ -53,43 +56,48 @@ struct WorkerCfg {
     int loopIntervalMs;
 
 
-    bool extractCfg(EasyCfgBase &config, const string &prefix) {
+    bool extractCfg(const string &taskName, EasyCfgBase &config) {
         bool enable = false;
-        if (!config.GetParamBool(prefix + "ENABLE", enable)) {
+        if (!config.getParamBool("TASK_ENABLE", enable, taskName)) {
             return false;
         };
         if (!enable) {
             return false;
         }
 
-        workMode = 0;
-        config.GetParamInt(prefix + "WORK_MODE", workMode); //optional parameter
+        this->taskName = taskName;
+        taskType = config.getParamStr("TASK_TYPE", taskName);
 
-        sessionNum = config.GetParamInt(prefix + "SESSION_NUMBER");
-        config.GetParamLL(prefix + "SG_TTL", sgTTL);    //optional parameter
-        storageGroupNum = config.GetParamInt(prefix + "SG_NUMBER");
-        deviceNum = config.GetParamInt(prefix + "DEVICE_NUMBER");
-        sensorNum = config.GetParamInt(prefix + "SENSOR_NUMBER");
-        string sensorDataTypeStr = config.GetParamStr(prefix + "SENSOR_DATA_TYPE");
-        config.ParseParamList(sensorDataTypeStr, dataTypeList);
+        workMode = 0;
+        config.getParamInt("WORK_MODE", workMode, taskName); //optional parameter
+
+        sessionNum = config.getParamInt("SESSION_NUMBER", taskName);
+        config.getParamLL("SG_TTL", sgTTL, taskName);    //optional parameter
+        storageGroupNum = config.getParamInt("SG_NUMBER", taskName);
+        deviceNum = config.getParamInt("DEVICE_NUMBER", taskName);
+        sensorNum = config.getParamInt("SENSOR_NUMBER", taskName);
+        string sensorDataTypeStr = config.getParamStr("SENSOR_DATA_TYPE", taskName);
+        config.parseValueBunch(sensorDataTypeStr, dataTypeList);
         if (dataTypeList.size() <= 0) {
-            error_log("Invalid configure %s=%s", (prefix + "SENSOR_DATA_TYPE").c_str(), sensorDataTypeStr.c_str());
+            error_log("Invalid configure %s=%s", "SENSOR_DATA_TYPE", sensorDataTypeStr.c_str());
             return false;
         }
-        textDataLen = config.GetParamInt(prefix + "TEXT_DATA_LEN");
-        batchSize = config.GetParamInt(prefix + "BATCH_SIZE");
-        if ( config.GetParamStr(prefix + "START_TIMESTAMP") == "NOW" ) {
+        textDataLen = config.getParamInt("TEXT_DATA_LEN", taskName);
+        batchSize = config.getParamInt("BATCH_SIZE", taskName);
+        if (config.getParamStr("START_TIMESTAMP", taskName) == "NOW" ) {
             startTimestamp = getTimeUs() / 1000;
         } else {
-            startTimestamp = config.GetParamLL(prefix + "START_TIMESTAMP");
+            startTimestamp = config.getParamLL("START_TIMESTAMP", taskName);
         }
-        loopIntervalMs = config.GetParamInt(prefix + "LOOP_INTERVAL_MS");
-        loopNum = config.GetParamLL(prefix + "LOOP_NUM");
+        loopNum = config.getParamLL("LOOP_NUM", taskName);
+        loopIntervalMs = config.getParamInt("LOOP_INTERVAL_MS", taskName);
 
         return true;
     }
 
     void printCfg() const {
+        printf("   taskName=%s\n", taskName.c_str());
+        printf("   taskType=%s\n", taskType.c_str());
         printf("   workMode=%d\n", workMode);
         printf("   sessionNum=%d\n", sessionNum);
         printf("   storageGroupNum=%d\n", storageGroupNum);
