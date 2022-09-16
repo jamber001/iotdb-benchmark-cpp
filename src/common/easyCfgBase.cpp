@@ -62,7 +62,7 @@ using namespace std;
 EasyCfgBase::EasyCfgBase(const string &cfgFileName, bool isRelativePath /*= true*/) {
     if (isRelativePath) {
         string exePath;
-        if (!GetExePath(exePath)) {
+        if (!getExePath(exePath)) {
             throw exception();
         }
         _cfgFile = exePath + "/" + cfgFileName;
@@ -83,13 +83,19 @@ bool EasyCfgBase::readConfigFile(const char *fileName) {
         return false;
     }
 
-    string line, key, value;
+    string line, section, key, value, tmpSection;
     getline(ifs, line);
     while (!ifs.fail()) {
-        //cout << line << endl;
-        if (parserKV(line, key, value)) {
-            _key2Value[key] = value;
-            //cout << "createInstance(), " << line << " : " << key << "=" << value << endl;
+        if (parserSKV(line, tmpSection, key, value)) {
+            if (!tmpSection.empty()) {
+                section = tmpSection;
+                if (_skvMap.find(section) == _skvMap.end()) {
+                    _sectionList.push_back(section);
+                    _skvMap[section];
+                }
+            } else {
+                _skvMap[section][key] = value;
+            }
         }
         getline(ifs, line);
     }
@@ -139,30 +145,87 @@ bool EasyCfgBase::parserKV(string line, string &key, string &value) {
     return true;
 }
 
-bool EasyCfgBase::GetParamStr(const string &paramName, string &value) {
-    map<string, string>::iterator itr = _key2Value.find(paramName);
-    if (itr != _key2Value.end()) {
-        value = itr->second;
+bool EasyCfgBase::parserSKV(string line, string &section, string &key, string &value) {
+    section.clear();
+    key.clear();
+    value.clear();
+
+    size_t pos = line.find_first_of("#");
+    if (string::npos != pos)
+        line.erase(pos);
+
+    line = trim(line);
+    if (line.size() <=2) {
+        return false;
+    }
+
+    if ((line[0] == '[') && ((*line.rbegin()) == ']')) {
+        section = line.substr(1, line.size()-2);
         return true;
     }
 
-    return false;
+    pos = line.find_first_of("=");
+    if (string::npos == pos) {
+        return false;
+    }
+
+    key = trim(line.substr(0, pos));
+    value = trim(line.substr(pos + 1));
+    if (key.empty()) {
+        return false;
+    }
+
+    //cout << "parserKV(), " << line << " : " << key << "=" << value << endl;
+    return true;
 }
 
-string EasyCfgBase::GetParamStr(const string &paramName) {
+void EasyCfgBase::getSectionList(vector<string> &out) {
+    out = _sectionList;
+}
+
+bool EasyCfgBase::getKVMap(map<string, string> &out, const string &section /* = "" */) {
+    out.clear();
+
+    map <string, map<string,string>>::iterator itr1;
+    itr1 = _skvMap.find(section);
+    if (_skvMap.end() == itr1 ) {
+        return  false;
+    }
+
+    out = itr1->second;
+    return true;
+}
+
+
+bool EasyCfgBase::getParamStr(const string &paramName, string &value, const string &section /* ="" */) {
+    map <string, map<string,string>>::iterator itr1 = _skvMap.find(section);
+    if (_skvMap.end() == itr1) {
+        return false;
+    }
+
+    map<string, string>::iterator itr2 = itr1->second.find(paramName);
+    if (itr1->second.end() == itr2) {
+        return false;
+    }
+
+    value = itr2->second;
+    return true;
+}
+
+string EasyCfgBase::getParamStr(const string &paramName, const string &section /* ="" */ ) {
     string value;
-    if (GetParamStr(paramName, value)) {
+    if (getParamStr(paramName, value, section)) {
         return value;
     }
 
-    info_log("EasyCfgBase::GetParamStr(), fatal error, abort(). Miss paramName=%s", paramName.c_str());
+    info_log("EasyCfgBase::getParamStr(), fatal error, abort(). Miss section=%s, paramName=%s", section.c_str(),
+             paramName.c_str());
     abort();
-    return value;
 }
 
-bool EasyCfgBase::GetParamLL(const string &paramName, long long &value) {
+bool EasyCfgBase::getParamLL(const string &paramName, long long &value, const string &section /* ="" */) {
     string strValue;
-    if (GetParamStr(paramName, strValue)) {
+    if (getParamStr(paramName, strValue, section)) {
         value = atoll(strValue.c_str());
         return true;
     }
@@ -170,20 +233,20 @@ bool EasyCfgBase::GetParamLL(const string &paramName, long long &value) {
     return false;
 }
 
-long long EasyCfgBase::GetParamLL(const string &paramName) {
+long long EasyCfgBase::getParamLL(const string &paramName, const string &section /* ="" */) {
     long long value = 0;
-    if (GetParamLL(paramName, value)) {
+    if (getParamLL(paramName, value, section)) {
         return value;
     }
 
-    info_log("EasyCfgBase::GetParamLL(), fatal error, abort(). Miss paramName=%s", paramName.c_str());
+    info_log("EasyCfgBase::getParamLL(), fatal error, abort(). Miss section=%s, paramName=%s", section.c_str(),
+             paramName.c_str());
     abort();
-    return 0;
 }
 
-bool EasyCfgBase::GetParamInt(const string &paramName, int &value) {
+bool EasyCfgBase::getParamInt(const string &paramName, int &value, const string &section /* ="" */) {
     string strValue;
-    if (GetParamStr(paramName, strValue)) {
+    if (getParamStr(paramName, strValue, section)) {
         value = atoi(strValue.c_str());
         return true;
     }
@@ -191,20 +254,21 @@ bool EasyCfgBase::GetParamInt(const string &paramName, int &value) {
     return false;
 }
 
-int EasyCfgBase::GetParamInt(const string &paramName) {
+int EasyCfgBase::getParamInt(const string &paramName, const string &section /* ="" */) {
     int value = 0;
-    if (GetParamInt(paramName, value)) {
+    if (getParamInt(paramName, value, section)) {
         return value;
     }
 
-    info_log("EasyCfgBase::GetParamInt(), fatal error, abort(). Miss paramName=%s", paramName.c_str());
+    info_log("EasyCfgBase::getParamInt(), fatal error, abort(). Miss section=%s, paramName=%s", section.c_str(),
+             paramName.c_str());
     abort();
     return 0;
 }
 
-bool EasyCfgBase::GetParamBool(const string &paramName, bool &value) {
+bool EasyCfgBase::getParamBool(const string &paramName, bool &value, const string &section /* ="" */) {
     string strValue;
-    if (GetParamStr(paramName, strValue)) {
+    if (getParamStr(paramName, strValue, section)) {
         transform(strValue.begin(), strValue.end(), strValue.begin(), ::tolower);
 
         if ((strValue == "true") || (strValue == "yes") || (strValue == "on")) {
@@ -221,20 +285,20 @@ bool EasyCfgBase::GetParamBool(const string &paramName, bool &value) {
     return false;
 }
 
-bool EasyCfgBase::GetParamBool(const string &paramName) {
+bool EasyCfgBase::getParamBool(const string &paramName, const string &section /* ="" */) {
     bool value = false;
-    if (GetParamBool(paramName, value)) {
+    if (getParamBool(paramName, value, section)) {
         return value;
     }
 
-    info_log("EasyCfgBase::GetParamBool(), fatal error, abort(). Miss paramName=%s", paramName.c_str());
+    info_log("EasyCfgBase::getParamBool(), fatal error, abort(). Miss section=%s, paramName=%s", section.c_str(),
+             paramName.c_str());
     abort();
-    return 0;
 }
 
-bool EasyCfgBase::GetParamDouble(const string &paramName, double &value) {
+bool EasyCfgBase::getParamDouble(const string &paramName, double &value, const string &section /* ="" */) {
     string strValue;
-    if (GetParamStr(paramName, strValue)) {
+    if (getParamStr(paramName, strValue, section)) {
         value = atof(strValue.c_str());
         return true;
     }
@@ -242,34 +306,55 @@ bool EasyCfgBase::GetParamDouble(const string &paramName, double &value) {
     return false;
 }
 
-
-bool EasyCfgBase::InsertParamStr(const string &paramName, const string &value, bool notReplace /*= false*/) {
-    if (notReplace) {
-        map<string, string>::iterator itr = _key2Value.find(paramName);
-        if (_key2Value.end() == itr) {
-            _key2Value[paramName] = value;
-        }
-    } else {
-        _key2Value[paramName] = value;
+double EasyCfgBase::getParamDouble(const string &paramName, const string &section /* ="" */) {
+    double value = 0.0;
+    if (getParamDouble(paramName, value, section)) {
+        return value;
     }
 
+    info_log("EasyCfgBase::getParamDouble(), fatal error, abort(). Miss section=%s, paramName=%s", section.c_str(),
+             paramName.c_str());
+    abort();
+}
+
+bool EasyCfgBase::insertParamStr(const string &paramName, const string &value, const string &section, bool notReplace /*= false*/) {
+    map<string, map<string, string>>::iterator itr1 = _skvMap.find(section);
+    if (notReplace) {
+        if (itr1 != _skvMap.end()) {
+            map<string, string>::iterator itr2 = itr1->second.find(paramName);
+            if (itr2 != itr1->second.end()) {
+                return false;   //not replace
+            }
+        }
+    }
+
+    if (_skvMap.end() == itr1) {
+        _sectionList.push_back(section);
+    }
+
+    _skvMap[section][paramName] = value;
     return true;
 }
 
 void EasyCfgBase::printAllParam() {
-    map<string, string>::iterator itr;
-    for (itr = _key2Value.begin(); itr != _key2Value.end(); itr++) {
-        cerr << itr->first << " = " << itr->second << endl;
+    vector<string>::iterator itr1;
+    for (itr1 = _sectionList.begin(); itr1 != _sectionList.end(); itr1++) {
+        cout << "[" << (*itr1) << "]" << endl;
+        map<string, string>::iterator itr2;
+        for (itr2 = _skvMap[*itr1].begin(); itr2 != _skvMap[*itr1].end(); itr2++) {
+            cout << itr2->first << " = " << itr2->second << endl;
+        }
+        cout << endl;
     }
 }
 
-bool EasyCfgBase::GetExePath(string &path) {
+bool EasyCfgBase::getExePath(string &path) {
     char buf[MAXPATHLEN];
     char proc[32];
     sprintf(proc, "/proc/%d/exe", getpid());
     int ret = readlink(proc, buf, sizeof(buf));
     if (ret <= 0) {
-        info_log("EasyCfgBase::GetExePath(), readlink error, ret=%d, path=%s.", ret, proc);
+        info_log("EasyCfgBase::getExePath(), readlink error, ret=%d, path=%s.", ret, proc);
         return false;
     }
 
@@ -278,7 +363,7 @@ bool EasyCfgBase::GetExePath(string &path) {
 
     size_t pos = path.rfind('/');
     if (string::npos == pos) {
-        info_log("EasyCfgBase::GetExePath(), exe path has no '/'. path=%s.", path.c_str());
+        info_log("EasyCfgBase::getExePath(), exe path has no '/'. path=%s.", path.c_str());
         return false;
     }
     path.erase(pos);
@@ -286,7 +371,7 @@ bool EasyCfgBase::GetExePath(string &path) {
     return true;
 }
 
-bool EasyCfgBase::ParseParamList(const string &listStr, vector<string> &out) {
+bool EasyCfgBase::parseValueBunch(const string &listStr, vector<string> &out) {
     out.clear();
 
     size_t pos1 = 0;

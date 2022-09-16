@@ -25,7 +25,7 @@ bool flag_Debug=false;
 
 void initEasyLog()
 {
-    //TODO: if (!EncCfg::GetInstance()->GetParamBool("debug_enable", flag_Debug))
+    //TODO: if (!EncCfg::GetInstance()->getParamBool("debug_enable", flag_Debug))
     {
         flag_Debug = false;
     }

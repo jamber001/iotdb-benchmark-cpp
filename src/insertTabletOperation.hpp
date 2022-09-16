@@ -26,9 +26,9 @@
 
 class InsertTabletOperation : public OperationBase {
 public:
-    InsertTabletOperation(const ServerCfg &serverCfg, const WorkerCfg &workerCfg) : OperationBase("InsertTablet",
-                                                                                                  serverCfg,
-                                                                                                  workerCfg) {}
+    InsertTabletOperation(const ServerCfg &serverCfg, const TaskCfg &workerCfg) : OperationBase("InsertTablet",
+                                                                                                serverCfg,
+                                                                                                workerCfg) {}
     bool createSchema() override;
 
     void worker(int threadIdx) override;
