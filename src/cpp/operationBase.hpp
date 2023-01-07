@@ -56,6 +56,7 @@ public:
     bool allWorkersFinished();
     void waitForAllWorkersFinished();
 
+    virtual bool doPreWork() = 0;
     virtual bool createSchema() = 0;
 
     virtual void worker(int threadIdx) = 0;

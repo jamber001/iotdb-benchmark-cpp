@@ -27,18 +27,17 @@ public:
     InsertTabletsOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase("InsertTablets",
                                                                                                serverCfg,
                                                                                                taskCfg) {}
+    bool doPreWork();
     bool createSchema() override;
 
     void worker(int threadIdx) override;
 
 private:
-    void prepareData();
-
     void insertTabletsBatch(shared_ptr<Session> &session, int sgIndex, int64_t startTs);
     void sendInsertTablets(shared_ptr<Session> &session, unordered_map<string, Tablet *> &tabletMap);
 
 private:
-    vector<unordered_map<string, Tablet *>> tabletMapList;   //sgId => tabletMap;
+    vector<unordered_map<string, Tablet *>> tabletMapList;   //sgId => tabletMap (devicePath => Tablet*)
     vector<vector<Tablet>> tabletsList;     //sgId => tablets;
 
     string sgPrefix = "tablets_";

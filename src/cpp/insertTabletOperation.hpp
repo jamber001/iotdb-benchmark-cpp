@@ -29,13 +29,12 @@ public:
     InsertTabletOperation(const ServerCfg &serverCfg, const TaskCfg &workerCfg) : OperationBase("InsertTablet",
                                                                                                 serverCfg,
                                                                                                 workerCfg) {}
+    bool doPreWork();
     bool createSchema() override;
 
     void worker(int threadIdx) override;
 
 private:
-    void prepareData();
-
     void insertTabletBatch(shared_ptr<Session> &session, int sgIdx, int deviceIdx, int64_t startTs);
     void insertTabletBatch2(shared_ptr<Session> &session, int sgIdx, int deviceIdx, int64_t startTs);
     void sendInsertTablet(shared_ptr<Session> &session, Tablet &tabletMap);

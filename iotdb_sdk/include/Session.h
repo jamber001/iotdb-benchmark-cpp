@@ -535,7 +535,10 @@ public:
     std::vector<BitMap> bitMaps; // each bitmap represents the existence of each value in the current column
     size_t rowSize;    //the number of rows to include in this tablet
     size_t maxRowNumber;   // the maximum number of rows for this tablet
+    std::vector <std::map<std::string, std::string>> tags;  //Optional tags info for every measurement.
     bool isAligned;   // whether this tablet store data of aligned timeseries or not
+
+    Tablet() = default;
 
     /**
     * Return a tablet with default specified row number. This is the standard
@@ -575,6 +578,12 @@ public:
         this->rowSize = 0;
     }
 
+    Tablet(const std::string &deviceId, const std::vector<std::pair<std::string, TSDataType::TSDataType>> &schemas,
+           size_t maxRowNumber, const std::vector<std::map<std::string, std::string> > &tags, bool _isAligned = false) : deviceId(deviceId), schemas(schemas),
+                                                           maxRowNumber(maxRowNumber), tags(tags), isAligned(_isAligned) {
+        Tablet(deviceId, schemas, DEFAULT_ROW_SIZE, _isAligned);
+    }
+
     ~Tablet() {
         try {
             deleteColumns();
@@ -592,6 +601,8 @@ public:
     size_t getValueByteSize(); // total byte size that values occupies
 
     void setAligned(bool isAligned);
+
+    bool setTags(const std::vector <std::map<std::string, std::string>> &tags);
 };
 
 class SessionUtils {
@@ -1081,8 +1092,6 @@ public:
     static void buildInsertTabletReq(TSInsertTabletReq &request, int64_t sessionId, Tablet &tablet, bool sorted);
 
     void insertTablet(const TSInsertTabletReq &request);
-
-
 
     void insertAlignedTablet(Tablet &tablet);
 
