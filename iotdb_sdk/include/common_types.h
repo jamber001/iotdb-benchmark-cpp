@@ -77,6 +77,10 @@ class TSchemaNode;
 
 class TSetTTLReq;
 
+class TFile;
+
+class TFilesResp;
+
 
 class TEndPoint : public virtual ::apache::thrift::TBase {
  public:
@@ -663,6 +667,88 @@ class TSetTTLReq : public virtual ::apache::thrift::TBase {
 void swap(TSetTTLReq &a, TSetTTLReq &b);
 
 std::ostream& operator<<(std::ostream& out, const TSetTTLReq& obj);
+
+
+class TFile : public virtual ::apache::thrift::TBase {
+ public:
+
+  TFile(const TFile&);
+  TFile& operator=(const TFile&);
+  TFile() : fileName(), file() {
+  }
+
+  virtual ~TFile() noexcept;
+  std::string fileName;
+  std::string file;
+
+  void __set_fileName(const std::string& val);
+
+  void __set_file(const std::string& val);
+
+  bool operator == (const TFile & rhs) const
+  {
+    if (!(fileName == rhs.fileName))
+      return false;
+    if (!(file == rhs.file))
+      return false;
+    return true;
+  }
+  bool operator != (const TFile &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TFile & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TFile &a, TFile &b);
+
+std::ostream& operator<<(std::ostream& out, const TFile& obj);
+
+
+class TFilesResp : public virtual ::apache::thrift::TBase {
+ public:
+
+  TFilesResp(const TFilesResp&);
+  TFilesResp& operator=(const TFilesResp&);
+  TFilesResp() {
+  }
+
+  virtual ~TFilesResp() noexcept;
+  TSStatus status;
+  std::vector<TFile>  files;
+
+  void __set_status(const TSStatus& val);
+
+  void __set_files(const std::vector<TFile> & val);
+
+  bool operator == (const TFilesResp & rhs) const
+  {
+    if (!(status == rhs.status))
+      return false;
+    if (!(files == rhs.files))
+      return false;
+    return true;
+  }
+  bool operator != (const TFilesResp &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TFilesResp & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TFilesResp &a, TFilesResp &b);
+
+std::ostream& operator<<(std::ostream& out, const TFilesResp& obj);
 
 
 

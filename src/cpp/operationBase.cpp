@@ -161,19 +161,19 @@ CompressionType::CompressionType OperationBase::getCompressionType(const string 
 
 string OperationBase::getPath(const string &sgPrefix, int sgIdx, int deviceIdx, int sensorIdx) {
     char pathStr[64];
-    snprintf(pathStr, 64, "root.cpp.%ssg%03d.d%03d.s%03d", sgPrefix.c_str(), sgIdx, deviceIdx, sensorIdx);
+    snprintf(pathStr, 64, "root.cpp_%ssg%03d.d%03d.s%03d", sgPrefix.c_str(), sgIdx, deviceIdx, sensorIdx);
     return string(pathStr);
 }
 
 string OperationBase::getPath(const string &sgPrefix, int sgIdx, int deviceIdx) {
     char pathStr[64];
-    snprintf(pathStr, 64, "root.cpp.%ssg%03d.d%03d", sgPrefix.c_str(), sgIdx, deviceIdx);
+    snprintf(pathStr, 64, "root.cpp_%ssg%03d.d%03d", sgPrefix.c_str(), sgIdx, deviceIdx);
     return string(pathStr);
 }
 
 string OperationBase::getPath(const string &sgPrefix, int sgIdx) {
     char pathStr[64];
-    snprintf(pathStr, 64, "root.cpp.%ssg%03d", sgPrefix.c_str(), sgIdx);
+    snprintf(pathStr, 64, "root.cpp_%ssg%03d", sgPrefix.c_str(), sgIdx);
     return string(pathStr);
 }
 

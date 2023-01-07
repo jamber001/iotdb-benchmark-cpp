@@ -36,17 +36,18 @@
 using namespace std;
 
 bool cleanAllSG(Session &session) {
-    string DELETE_ALL_SG_SQL = "delete storage group root.cpp.**;";
-
+    string DELETE_ALL_SG_SQL = "delete storage group root.cpp_*";
     try {
         session.executeNonQueryStatement(DELETE_ALL_SG_SQL);
     }
     catch (const exception &e) {
-        if (string(e.what()).find("Path [root.cpp.**] does not exist") != string::npos) {
+        if (string(e.what()).find("Path [root.cpp_*] does not exist") != string::npos) {
+            //info_log(" %s", DELETE_ALL_SG_SQL.c_str());
             return true;
+        } else {
+            error_log("cleanAllSG(), error: %s", e.what());
+            return false;
         }
-        error_log("cleanAllSG(), error: %s", e.what());
-        return false;
     }
 
     return true;
@@ -156,15 +157,15 @@ int main(int argc, char* argv[]) {
             taskCfgList.push_back(taskCfg);
             printf("%s\n", "Succ!");
         } else {
-            printf("%s\n", "Disable!");
+            printf("%s\n", "Disabled!");
         }
     }
 
     for (TaskCfg &taskCfg: taskCfgList) {
         if ("TABLET" == taskCfg.taskType) {
-            OperationList.emplace_back(new InsertTabletsOperation(serverCfg, taskCfg));
-        } else if ("TABLETS" == taskCfg.taskType) {
             OperationList.emplace_back(new InsertTabletOperation(serverCfg, taskCfg));
+        } else if ("TABLETS" == taskCfg.taskType) {
+            OperationList.emplace_back(new InsertTabletsOperation(serverCfg, taskCfg));
         } else if ("RECORD" == taskCfg.taskType) {
             OperationList.emplace_back(new InsertRecordOperation(serverCfg, taskCfg));
         } else if ("RECORDS" == taskCfg.taskType) {
@@ -173,16 +174,21 @@ int main(int argc, char* argv[]) {
     }
 
     int64_t startTime, endTime;
-    printf("\n== Clean all SG ==\n");
-    startTime = getTimeUs();
-    Session tmpSession(serverCfg.host, serverCfg.port, serverCfg.user, serverCfg.passwd);
-    tmpSession.open(serverCfg.rpcCompression, 2000);  //enableRPCCompression=false, connectionTimeoutInMs=1000
-    cleanAllSG(tmpSession);
-    tmpSession.close();
-    endTime = getTimeUs();
-    printf(" Finished ... (%.3fs) \n", (endTime - startTime)/1000000.0);
 
-    sleep(1);
+    bool cleanSg = true;
+    config.getParamBool("CLEAN_SG", cleanSg);
+    if (cleanSg) {
+        printf("\n== Clean test related SG ==\n");
+        startTime = getTimeUs();
+        Session tmpSession(serverCfg.host, serverCfg.port, serverCfg.user, serverCfg.passwd);
+        tmpSession.open(serverCfg.rpcCompression, 2000);  //enableRPCCompression=false, connectionTimeoutInMs=1000
+        cleanAllSG(tmpSession);
+        tmpSession.close();
+        endTime = getTimeUs();
+        printf(" Finished ... (%.3fs) \n", (endTime - startTime) / 1000000.0);
+
+        sleep(1);
+    }
 
 
     printf("\n== Create sessions ==\n");
@@ -192,17 +198,24 @@ int main(int argc, char* argv[]) {
         op->createSessions();
         endTime = getTimeUs();
         printf(" (%.3fs) \n", (endTime - startTime) / 1000000.0);
+
+        // here, also do pre-work.
+        op->doPreWork();
     }
 
     printf("\n== Create schema ==\n");
-    for (auto &op : OperationList) {
+    for (auto &op: OperationList) {
         printf(" %-14s: create schema ... ", op->getOpName().c_str());
-        startTime = getTimeUs();
-        if (!op->createSchema()) {
-            return -1;
+        if (op->getWorkerCfg().createSchema) {
+            startTime = getTimeUs();
+            if (!op->createSchema()) {
+                return -1;
+            }
+            endTime = getTimeUs();
+            printf(" (%.3fs) \n", (endTime - startTime) / 1000000.0);
+        } else {
+            printf(" Disabled! \n");
         }
-        endTime = getTimeUs();
-        printf(" (%.3fs) \n", (endTime - startTime) / 1000000.0);
     }
 
     sleep(1);

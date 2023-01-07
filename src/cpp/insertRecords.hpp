@@ -32,6 +32,7 @@ public:
                                                                                                  serverCfg,
                                                                                                  workerCfg) {};
 
+    bool doPreWork();
     bool createSchema() override;
 
     void worker(int threadIdx) override;
@@ -49,8 +50,6 @@ private:
                             const std::vector<std::vector<std::string>> &measurementsList,
                             const vector<vector<TSDataType::TSDataType>> &typesList,
                             const std::vector<std::vector<char *>> &valuesList);
-
-    void prepareData();
 
     string genValueStr(TSDataType::TSDataType);
 

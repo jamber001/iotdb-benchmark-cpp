@@ -60,8 +60,6 @@ bool InsertRecordOperation::createSchema() {
 
     session->createMultiTimeseries(paths, tsDataTypes, tsEncodings, compressionTypes, nullptr, nullptr, nullptr, nullptr);
 
-    prepareData();
-
     return true;
 }
 
@@ -122,7 +120,7 @@ string InsertRecordOperation::genValue(TSDataType::TSDataType tsDataType) {
     }
 }
 
-void InsertRecordOperation::prepareData() {
+bool InsertRecordOperation::doPreWork() {
     measurements4OneRecord.reserve(workerCfg.sensorNum);
     types4OneRecord.reserve(workerCfg.sensorNum);
 
@@ -148,6 +146,7 @@ void InsertRecordOperation::prepareData() {
         }
     }
 
+    return true;
 }
 
 

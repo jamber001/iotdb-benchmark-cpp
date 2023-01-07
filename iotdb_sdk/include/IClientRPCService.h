@@ -70,9 +70,6 @@ class IClientRPCServiceIf {
   virtual void getNodeStatus(TSNodeStatusResp& _return, const TSNodeStatusReq& req) = 0;
   virtual void unsetSchemaTemplate( ::TSStatus& _return, const TSUnsetSchemaTemplateReq& req) = 0;
   virtual void dropSchemaTemplate( ::TSStatus& _return, const TSDropSchemaTemplateReq& req) = 0;
-  virtual void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info) = 0;
-  virtual void sendPipeData( ::TSStatus& _return, const std::string& buff) = 0;
-  virtual void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff) = 0;
 };
 
 class IClientRPCServiceIfFactory {
@@ -245,15 +242,6 @@ class IClientRPCServiceNull : virtual public IClientRPCServiceIf {
     return;
   }
   void dropSchemaTemplate( ::TSStatus& /* _return */, const TSDropSchemaTemplateReq& /* req */) {
-    return;
-  }
-  void handshake( ::TSStatus& /* _return */, const TSyncIdentityInfo& /* info */) {
-    return;
-  }
-  void sendPipeData( ::TSStatus& /* _return */, const std::string& /* buff */) {
-    return;
-  }
-  void sendFile( ::TSStatus& /* _return */, const TSyncTransportMetaInfo& /* metaInfo */, const std::string& /* buff */) {
     return;
   }
 };
@@ -5247,325 +5235,6 @@ class IClientRPCService_dropSchemaTemplate_presult {
 
 };
 
-typedef struct _IClientRPCService_handshake_args__isset {
-  _IClientRPCService_handshake_args__isset() : info(false) {}
-  bool info :1;
-} _IClientRPCService_handshake_args__isset;
-
-class IClientRPCService_handshake_args {
- public:
-
-  IClientRPCService_handshake_args(const IClientRPCService_handshake_args&);
-  IClientRPCService_handshake_args& operator=(const IClientRPCService_handshake_args&);
-  IClientRPCService_handshake_args() {
-  }
-
-  virtual ~IClientRPCService_handshake_args() noexcept;
-  TSyncIdentityInfo info;
-
-  _IClientRPCService_handshake_args__isset __isset;
-
-  void __set_info(const TSyncIdentityInfo& val);
-
-  bool operator == (const IClientRPCService_handshake_args & rhs) const
-  {
-    if (!(info == rhs.info))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_handshake_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_handshake_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class IClientRPCService_handshake_pargs {
- public:
-
-
-  virtual ~IClientRPCService_handshake_pargs() noexcept;
-  const TSyncIdentityInfo* info;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_handshake_result__isset {
-  _IClientRPCService_handshake_result__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_handshake_result__isset;
-
-class IClientRPCService_handshake_result {
- public:
-
-  IClientRPCService_handshake_result(const IClientRPCService_handshake_result&);
-  IClientRPCService_handshake_result& operator=(const IClientRPCService_handshake_result&);
-  IClientRPCService_handshake_result() {
-  }
-
-  virtual ~IClientRPCService_handshake_result() noexcept;
-   ::TSStatus success;
-
-  _IClientRPCService_handshake_result__isset __isset;
-
-  void __set_success(const  ::TSStatus& val);
-
-  bool operator == (const IClientRPCService_handshake_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_handshake_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_handshake_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_handshake_presult__isset {
-  _IClientRPCService_handshake_presult__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_handshake_presult__isset;
-
-class IClientRPCService_handshake_presult {
- public:
-
-
-  virtual ~IClientRPCService_handshake_presult() noexcept;
-   ::TSStatus* success;
-
-  _IClientRPCService_handshake_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
-typedef struct _IClientRPCService_sendPipeData_args__isset {
-  _IClientRPCService_sendPipeData_args__isset() : buff(false) {}
-  bool buff :1;
-} _IClientRPCService_sendPipeData_args__isset;
-
-class IClientRPCService_sendPipeData_args {
- public:
-
-  IClientRPCService_sendPipeData_args(const IClientRPCService_sendPipeData_args&);
-  IClientRPCService_sendPipeData_args& operator=(const IClientRPCService_sendPipeData_args&);
-  IClientRPCService_sendPipeData_args() : buff() {
-  }
-
-  virtual ~IClientRPCService_sendPipeData_args() noexcept;
-  std::string buff;
-
-  _IClientRPCService_sendPipeData_args__isset __isset;
-
-  void __set_buff(const std::string& val);
-
-  bool operator == (const IClientRPCService_sendPipeData_args & rhs) const
-  {
-    if (!(buff == rhs.buff))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_sendPipeData_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_sendPipeData_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class IClientRPCService_sendPipeData_pargs {
- public:
-
-
-  virtual ~IClientRPCService_sendPipeData_pargs() noexcept;
-  const std::string* buff;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_sendPipeData_result__isset {
-  _IClientRPCService_sendPipeData_result__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_sendPipeData_result__isset;
-
-class IClientRPCService_sendPipeData_result {
- public:
-
-  IClientRPCService_sendPipeData_result(const IClientRPCService_sendPipeData_result&);
-  IClientRPCService_sendPipeData_result& operator=(const IClientRPCService_sendPipeData_result&);
-  IClientRPCService_sendPipeData_result() {
-  }
-
-  virtual ~IClientRPCService_sendPipeData_result() noexcept;
-   ::TSStatus success;
-
-  _IClientRPCService_sendPipeData_result__isset __isset;
-
-  void __set_success(const  ::TSStatus& val);
-
-  bool operator == (const IClientRPCService_sendPipeData_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_sendPipeData_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_sendPipeData_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_sendPipeData_presult__isset {
-  _IClientRPCService_sendPipeData_presult__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_sendPipeData_presult__isset;
-
-class IClientRPCService_sendPipeData_presult {
- public:
-
-
-  virtual ~IClientRPCService_sendPipeData_presult() noexcept;
-   ::TSStatus* success;
-
-  _IClientRPCService_sendPipeData_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
-typedef struct _IClientRPCService_sendFile_args__isset {
-  _IClientRPCService_sendFile_args__isset() : metaInfo(false), buff(false) {}
-  bool metaInfo :1;
-  bool buff :1;
-} _IClientRPCService_sendFile_args__isset;
-
-class IClientRPCService_sendFile_args {
- public:
-
-  IClientRPCService_sendFile_args(const IClientRPCService_sendFile_args&);
-  IClientRPCService_sendFile_args& operator=(const IClientRPCService_sendFile_args&);
-  IClientRPCService_sendFile_args() : buff() {
-  }
-
-  virtual ~IClientRPCService_sendFile_args() noexcept;
-  TSyncTransportMetaInfo metaInfo;
-  std::string buff;
-
-  _IClientRPCService_sendFile_args__isset __isset;
-
-  void __set_metaInfo(const TSyncTransportMetaInfo& val);
-
-  void __set_buff(const std::string& val);
-
-  bool operator == (const IClientRPCService_sendFile_args & rhs) const
-  {
-    if (!(metaInfo == rhs.metaInfo))
-      return false;
-    if (!(buff == rhs.buff))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_sendFile_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_sendFile_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class IClientRPCService_sendFile_pargs {
- public:
-
-
-  virtual ~IClientRPCService_sendFile_pargs() noexcept;
-  const TSyncTransportMetaInfo* metaInfo;
-  const std::string* buff;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_sendFile_result__isset {
-  _IClientRPCService_sendFile_result__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_sendFile_result__isset;
-
-class IClientRPCService_sendFile_result {
- public:
-
-  IClientRPCService_sendFile_result(const IClientRPCService_sendFile_result&);
-  IClientRPCService_sendFile_result& operator=(const IClientRPCService_sendFile_result&);
-  IClientRPCService_sendFile_result() {
-  }
-
-  virtual ~IClientRPCService_sendFile_result() noexcept;
-   ::TSStatus success;
-
-  _IClientRPCService_sendFile_result__isset __isset;
-
-  void __set_success(const  ::TSStatus& val);
-
-  bool operator == (const IClientRPCService_sendFile_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_sendFile_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_sendFile_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_sendFile_presult__isset {
-  _IClientRPCService_sendFile_presult__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_sendFile_presult__isset;
-
-class IClientRPCService_sendFile_presult {
- public:
-
-
-  virtual ~IClientRPCService_sendFile_presult() noexcept;
-   ::TSStatus* success;
-
-  _IClientRPCService_sendFile_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
 class IClientRPCServiceClient : virtual public IClientRPCServiceIf {
  public:
   IClientRPCServiceClient(std::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
@@ -5735,15 +5404,6 @@ class IClientRPCServiceClient : virtual public IClientRPCServiceIf {
   void dropSchemaTemplate( ::TSStatus& _return, const TSDropSchemaTemplateReq& req);
   void send_dropSchemaTemplate(const TSDropSchemaTemplateReq& req);
   void recv_dropSchemaTemplate( ::TSStatus& _return);
-  void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info);
-  void send_handshake(const TSyncIdentityInfo& info);
-  void recv_handshake( ::TSStatus& _return);
-  void sendPipeData( ::TSStatus& _return, const std::string& buff);
-  void send_sendPipeData(const std::string& buff);
-  void recv_sendPipeData( ::TSStatus& _return);
-  void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
-  void send_sendFile(const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
-  void recv_sendFile( ::TSStatus& _return);
  protected:
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -5807,9 +5467,6 @@ class IClientRPCServiceProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_getNodeStatus(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_unsetSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_dropSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_handshake(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_sendPipeData(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_sendFile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   IClientRPCServiceProcessor(::std::shared_ptr<IClientRPCServiceIf> iface) :
     iface_(iface) {
@@ -5861,9 +5518,6 @@ class IClientRPCServiceProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["getNodeStatus"] = &IClientRPCServiceProcessor::process_getNodeStatus;
     processMap_["unsetSchemaTemplate"] = &IClientRPCServiceProcessor::process_unsetSchemaTemplate;
     processMap_["dropSchemaTemplate"] = &IClientRPCServiceProcessor::process_dropSchemaTemplate;
-    processMap_["handshake"] = &IClientRPCServiceProcessor::process_handshake;
-    processMap_["sendPipeData"] = &IClientRPCServiceProcessor::process_sendPipeData;
-    processMap_["sendFile"] = &IClientRPCServiceProcessor::process_sendFile;
   }
 
   virtual ~IClientRPCServiceProcessor() {}
@@ -6371,36 +6025,6 @@ class IClientRPCServiceMultiface : virtual public IClientRPCServiceIf {
     return;
   }
 
-  void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->handshake(_return, info);
-    }
-    ifaces_[i]->handshake(_return, info);
-    return;
-  }
-
-  void sendPipeData( ::TSStatus& _return, const std::string& buff) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->sendPipeData(_return, buff);
-    }
-    ifaces_[i]->sendPipeData(_return, buff);
-    return;
-  }
-
-  void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->sendFile(_return, metaInfo, buff);
-    }
-    ifaces_[i]->sendFile(_return, metaInfo, buff);
-    return;
-  }
-
 };
 
 // The 'concurrent' client is a thread safe client that correctly handles
@@ -6577,15 +6201,6 @@ class IClientRPCServiceConcurrentClient : virtual public IClientRPCServiceIf {
   void dropSchemaTemplate( ::TSStatus& _return, const TSDropSchemaTemplateReq& req);
   int32_t send_dropSchemaTemplate(const TSDropSchemaTemplateReq& req);
   void recv_dropSchemaTemplate( ::TSStatus& _return, const int32_t seqid);
-  void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info);
-  int32_t send_handshake(const TSyncIdentityInfo& info);
-  void recv_handshake( ::TSStatus& _return, const int32_t seqid);
-  void sendPipeData( ::TSStatus& _return, const std::string& buff);
-  int32_t send_sendPipeData(const std::string& buff);
-  void recv_sendPipeData( ::TSStatus& _return, const int32_t seqid);
-  void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
-  int32_t send_sendFile(const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
-  void recv_sendFile( ::TSStatus& _return, const int32_t seqid);
  protected:
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;

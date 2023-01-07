@@ -35,6 +35,7 @@ bool InsertTabletsOperation::createSchema() {
     vector <TSDataType::TSDataType> tsDataTypes;
     vector <TSEncoding::TSEncoding> tsEncodings;
     vector <CompressionType::CompressionType> compressionTypes;
+    vector <map<string, string>> tagsList;
     tsDataTypes.reserve(count);
     tsEncodings.reserve(count);
     compressionTypes.reserve(count);
@@ -43,6 +44,7 @@ bool InsertTabletsOperation::createSchema() {
         session->setStorageGroup(sgPath);
         setSgTTL(*session, sgPath, workerCfg.sgTTL);
         for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
+            string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
             for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
                 string path= getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
                 if (!session->checkTimeseriesExists(path)) {
@@ -51,14 +53,23 @@ bool InsertTabletsOperation::createSchema() {
                     tsDataTypes.push_back(getTsDataType(workerCfg.dataTypeList[typeIdx]));
                     tsEncodings.push_back(getTsEncodingType(workerCfg.dataTypeList[typeIdx]));
                     compressionTypes.push_back(getCompressionType(workerCfg.dataTypeList[typeIdx]));
+
+                    if (workerCfg.tagsEnable) {
+                        map<string, string> tags;
+                        tags["tag1"] = devicePath + "tv1";
+                        tags["tag2"] = devicePath + "tv2";
+                        tagsList.push_back(tags);
+                    }
                 }
             }
         }
     }
+    vector <map<string, string>> *tagsListPtr = nullptr;
+    if (!tagsList.empty()) {
+        tagsListPtr = &tagsList;
+    }
 
-    session->createMultiTimeseries(paths, tsDataTypes, tsEncodings, compressionTypes, nullptr, nullptr, nullptr, nullptr);
-
-    prepareData();
+    session->createMultiTimeseries(paths, tsDataTypes, tsEncodings, compressionTypes, nullptr, tagsListPtr, nullptr, nullptr);
 
     return true;
 }
@@ -84,7 +95,7 @@ void InsertTabletsOperation::worker(int threadIdx) {
     }
 }
 
-void InsertTabletsOperation::prepareData() {
+bool InsertTabletsOperation::doPreWork() {
     vector<pair<string, TSDataType::TSDataType>> schemaList4Device;
     schemaList4Device.reserve(workerCfg.sensorNum);
     for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
@@ -103,6 +114,14 @@ void InsertTabletsOperation::prepareData() {
         for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
             string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
             tablets.emplace_back(devicePath, schemaList4Device, workerCfg.batchSize); //maxRowNumber=workerCfg.batchSize, _isAligned = false
+            if (workerCfg.tagsEnable) {
+                std::vector <std::map<std::string, std::string>> tags(workerCfg.sensorNum);
+                for (int i = 0; i< workerCfg.sensorNum; i++) {
+                    tags[i]["tag1"] = devicePath + "tv1";
+                    tags[i]["tag2"] = devicePath + "tv2";
+                }
+                tablets.rbegin()->setTags(tags);
+            }
             tabletMap[devicePath] = &tablets[deviceIdx];
         }
 
@@ -157,7 +176,7 @@ void InsertTabletsOperation::prepareData() {
         }
     }
 
-
+    return true;
 }
 
 void InsertTabletsOperation::insertTabletsBatch(shared_ptr<Session> &session, int sgIdx, int64_t startTs) {

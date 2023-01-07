@@ -14,7 +14,15 @@ __Benchmark_cpp is developed using C++ language and IoTDB C++ client SDK.
 
 ## 2. Usage
 
-### 2.1 Build of Benchmark_cpp
+### 2.1 upgrade to the latest C++ SDK of IoTDB
+This step is not necessary, and depends on your real need.
+```bash
+unzip apache-iotdb-0.14.0-SNAPSHOT-client-cpp-linux-x86_64-bin.zip         # get the latest IoTDB C++ SDK 
+rm -rf iotdb_sdk/*                                                         # delete original old SDK
+cp apache-iotdb-0.14.0-SNAPSHOT-client-cpp-bin/clientIncLib/* iotdb_sdk/   # copy IoTDB C++ SDK files
+```
+
+### 2.2 Build of Benchmark_cpp
 
 ```bash
 cmake . -B ./build
@@ -23,9 +31,10 @@ cmake --build ./build
 
 
 
-### 2.2 Run Benchmark_cpp after building
+### 2.3 Run Benchmark_cpp after building
 
 ```bash
+mkdir build
 cmake . -B ./build
 cmake --build ./build
 cmake --install ./build --prefix "./out"
@@ -35,17 +44,17 @@ vi ./out/conf/main.conf                     #change the configuration
 
 
 
-### 2.3 Make App package and run anywhere
+### 2.4 Make App package and run anywhere
 
 ```bash
+mkdir build
 cmake . -B ./build
-cmake --build ./build
 cmake --build ./build --target package      #make App package
 cp build/benchmark-cpp-1.0.0-Linux.zip  ~   #copy App package to any directory 
 cd ~
 unzip benchmark-cpp-1.0.0-Linux.zip
 cd benchmark-cpp-1.0.0-Linux
-vi ./out/conf/main.conf                     #change the configuration
+vi ./conf/main.conf                         #change the configuration
 ./benchmark-cpp.sh                          #run benchmark_cpp
 ```
 
