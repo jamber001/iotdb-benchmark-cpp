@@ -28,5 +28,6 @@ using namespace std;
 
 int64_t getTimeUs();
 string getTimeStr();
+string msToTimeStr(long epochSec);
 
 #endif //UTILITY_HPP

@@ -53,57 +53,84 @@ bool cleanAllSG(Session &session) {
     return true;
 };
 
-void printOpStatistics(OperationBase &op) {
-    double interval = op.getWorkerTimeUs() / 1000000.0;
-    printf("----------------------------------------------------------Result Matrix------------------------------------------------------------\n");
-    printf("%-20s %-20s %-20s %-20s %-20s %-20s\n", "Operation", "SuccOperation", "SuccPoint", "failOperation",
-           "failPoint", "throughput(point/s)");
-    printf("%-20s %-20llu %-20llu %-20llu %-20llu %-20.2f\n", op.getOpName().c_str(), op.getSuccOperationCount(),
-           op.getSuccInsertPointCount(), op.getFailOperationCount(), op.getFailInsertPointCount(), op.getSuccInsertPointCount() / interval);
-
-    op.genLatencySum();
-    auto p = op.getPermillageMap();
-    printf("----------------------------------------------------------Latency (ms) Matrix------------------------------------------------------\n");
-    printf("%-16s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-18s\n",
-           "Operation", "AVG", "MIN",
-           "P10", "P25", "MEDIAN", "P75", "P90", "P95", "P99", "P999", "MAX", "SLOWEST_THREAD");
-    printf("%-16s %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-18.2f\n",
-           op.getOpName().c_str(), op.getAvgLatencyMs(), op.getminLatencyUs() / 1000.0,
-           p[100], p[250], p[500], p[750], p[900], p[950], p[990], p[999], op.getmaxLatencyUs()/1000.0, op.getLatencyMaxRangUs()/1000.0);
+void printTaskStatus(vector<StatisticsResult> &resultList) {
+    //== print title for Running time
+    printf("----------------------------------------------------------Task Status--------------------------------------------------------------\n");
+    printf("%-20s %-14s %-20s %-20s\n", "Task", "Status", "Interval(sec)", "RunningTime");
+    for (auto &result: resultList) {
+        string timeStr;
+        timeStr = "[" + msToTimeStr(result.beginTimeUs / 1000) + " - " +  msToTimeStr(result.endTimeUs / 1000) + "]";
+        printf("%-20s %-14s %-20.3f %-20s\n", result.opName.c_str(), result.opStatus.c_str(),
+               (result.endTimeUs - result.beginTimeUs) / 1000000.0, timeStr.c_str());
+    }
 }
 
-void printAllStatistics(vector<shared_ptr<OperationBase>> &OperationList) {
-    unsigned long long succOperationCount = 0;
-    unsigned long long failOperationCount = 0;
-    unsigned long long succInsertPointCount = 0;
-    unsigned long long failInsertPointCount = 0;
-
-    int64_t workerTimeUs = 0;
-    for (auto &op: OperationList) {
-        succOperationCount += op->getSuccOperationCount();
-        failOperationCount += op->getFailOperationCount();
-        succInsertPointCount += op->getSuccInsertPointCount();
-        failInsertPointCount += op->getFailInsertPointCount();
-        if (op->getWorkerTimeUs() > workerTimeUs) {
-            workerTimeUs = op->getWorkerTimeUs();
-        }
-    }
-    double workerTimeSec = workerTimeUs / 1000000.0;
+void printCountMatric(vector<StatisticsResult> &resultList) {
+    //== print title for Count Matrix
     printf("----------------------------------------------------------Result Matrix------------------------------------------------------------\n");
-    printf("%-20s %-20s %-20s %-20s %-20s %-20s\n", "Operation", "SuccOperation", "SuccPoint", "failOperation",
-           "failPoint", "throughput(point/s)");
-    printf("%-20s %-20llu %-20llu %-20llu %-20llu %-20.2f\n", "All", succOperationCount,
-           succInsertPointCount, failOperationCount, failInsertPointCount, succInsertPointCount / workerTimeSec);
+    printf("%-20s %-20s %-20s %-20s %-20s %-20s\n", "Task", "SuccOperation", "SuccPoint", "FailOperation",
+           "FailPoint", "Throughput(point/s)");
 
-//    op->genLatencySum();
-//    auto p = op->getPermillageMap();
-//    printf("----------------------------------------------------------Latency (ms) Matrix------------------------------------------------------\n");
-//    printf("%-16s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-18s\n",
-//           "Operation", "AVG", "MIN",
-//           "P10", "P25", "MEDIAN", "P75", "P90", "P95", "P99", "P999", "MAX", "SLOWEST_THREAD");
-//    printf("%-16s %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-18.2f\n",
-//           op->getOpName().c_str(), op->getAvgLatencyMs(), op->getminLatencyUs() / 1000.0,
-//           p[100], p[250], p[500], p[750], p[900], p[950], p[990], p[999], op->getmaxLatencyUs()/1000.0, op->getLatencyMaxRangUs()/1000.0);
+    for (auto &result: resultList) {
+        double intervalSec = (result.endTimeUs - result.beginTimeUs) / 1000000.0;
+        float pps;
+        if (intervalSec < 0.00001) {
+            pps = 0.0;
+        } else {
+            pps = result.succInsertPointCount / intervalSec;
+        }
+        printf("%-20s %-20llu %-20llu %-20llu %-20llu %-20.2f\n", result.opName.c_str(), result.succOperationCount,
+               result.succInsertPointCount, result.failOperationCount, result.failInsertPointCount, pps);
+    }
+}
+
+
+void printLatencyMatric(vector<StatisticsResult> &resultList) {
+    //== print title for Latency Matrix
+    printf("----------------------------------------------------------Latency (ms) Matrix------------------------------------------------------\n");
+    printf("%-16s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-18s\n", "Task", "AVG", "MIN", "P10",
+           "P25", "MEDIAN", "P75", "P90", "P95", "P99", "P999", "MAX", "SLOWEST_THREAD");
+
+    for (auto &result: resultList) {
+        auto &p = result.latencyPermillageMap;
+        printf("%-16s %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-8.2f %-18.2f\n",
+               result.opName.c_str(), result.avgLatencyUs / 1000.0, result.minLatencyUs / 1000.0,
+               p[100], p[250], p[500], p[750], p[900], p[950], p[990], p[999], result.maxLatencyUs / 1000.0,
+               result.latencyMaxRangUs / 1000.0);
+    }
+}
+
+void printSummary(vector<shared_ptr<OperationBase>> &opList, bool printDelta = true, bool printAll = true) {
+    for (auto &opPtr: opList) {
+        opPtr->doStatisticsCheckpoint();
+    }
+
+    vector<StatisticsResult> resultList;
+    resultList.resize(opList.size());
+
+    string curTimeStr = msToTimeStr(getTimeUs() / 1000).c_str();
+    if (printDelta) {
+        printf("\n>>> Summary for INCREMENT (%s) \n", curTimeStr.c_str());
+
+        int i = 0;
+        for (auto &opPtr: opList) {
+            opPtr->genDeltaStatisticsResult(resultList[i++]);
+        }
+        printTaskStatus(resultList);
+        printCountMatric(resultList);
+        printLatencyMatric(resultList);
+    }
+
+    if (printAll) {
+        printf("\n>>> Summary for ALL (%s) \n", curTimeStr.c_str());
+        int i = 0;
+        for (auto &opPtr: opList) {
+            opPtr->genFullStatisticsResult(resultList[i++]);
+        }
+        printTaskStatus(resultList);
+        printCountMatric(resultList);
+        printLatencyMatric(resultList);
+    }
 }
 
 static void showUsage(const char * cmd) {
@@ -116,7 +143,7 @@ static void showUsage(const char * cmd) {
 
 int main(int argc, char* argv[]) {
     if (argc > 1) {
-        if (0 == strcmp(argv[1], "-v") ) {
+        if (0 == strcmp(argv[1], "-v")) {
             printf("\n Benchmark version: %s\n", BENCHMARK_VERSION);
             return 0;
         }
@@ -137,16 +164,16 @@ int main(int argc, char* argv[]) {
     serverCfg.passwd = "root";
     serverCfg.rpcCompression = config.getParamInt("RPC_COMPRESSION");
     printf(" Server Address: %s:%d\n", serverCfg.host.c_str(), serverCfg.port);
-
+    fflush(stdout);
 
     printf("\n== Read Worker Configuration ==\n");
-    vector<shared_ptr<OperationBase>> OperationList;
-    vector<TaskCfg> taskCfgList;
+    vector <shared_ptr<OperationBase>> OperationList;
+    vector <TaskCfg> taskCfgList;
 
-    vector<string> sectionList;
+    vector <string> sectionList;
     config.getSectionList(sectionList);
     taskCfgList.reserve(sectionList.size());
-    for (string &section : sectionList) {
+    for (string &section: sectionList) {
         if (section.empty()) {
             continue;
         }
@@ -160,6 +187,7 @@ int main(int argc, char* argv[]) {
             printf("%s\n", "Disabled!");
         }
     }
+    fflush(stdout);
 
     for (TaskCfg &taskCfg: taskCfgList) {
         if ("TABLET" == taskCfg.taskType) {
@@ -173,7 +201,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    int64_t startTime, endTime;
+    int64_t startTime, endTimeUs;
 
     bool cleanSg = true;
     config.getParamBool("CLEAN_SG", cleanSg);
@@ -184,24 +212,25 @@ int main(int argc, char* argv[]) {
         tmpSession.open(serverCfg.rpcCompression, 2000);  //enableRPCCompression=false, connectionTimeoutInMs=1000
         cleanAllSG(tmpSession);
         tmpSession.close();
-        endTime = getTimeUs();
-        printf(" Finished ... (%.3fs) \n", (endTime - startTime) / 1000000.0);
+        endTimeUs = getTimeUs();
+        printf(" Finished ... (%.3fs) \n", (endTimeUs - startTime) / 1000000.0);
 
         sleep(1);
     }
-
+    fflush(stdout);
 
     printf("\n== Create sessions ==\n");
-    for (auto &op : OperationList) {
+    for (auto &op: OperationList) {
         printf(" %-14s: create %d sessions ... ", op->getOpName().c_str(), op->getWorkerCfg().sessionNum);
         startTime = getTimeUs();
         op->createSessions();
-        endTime = getTimeUs();
-        printf(" (%.3fs) \n", (endTime - startTime) / 1000000.0);
+        endTimeUs = getTimeUs();
+        printf(" (%.3fs) \n", (endTimeUs - startTime) / 1000000.0);
 
         // here, also do pre-work.
         op->doPreWork();
     }
+    fflush(stdout);
 
     printf("\n== Create schema ==\n");
     for (auto &op: OperationList) {
@@ -211,12 +240,13 @@ int main(int argc, char* argv[]) {
             if (!op->createSchema()) {
                 return -1;
             }
-            endTime = getTimeUs();
-            printf(" (%.3fs) \n", (endTime - startTime) / 1000000.0);
+            endTimeUs = getTimeUs();
+            printf(" (%.3fs) \n", (endTimeUs - startTime) / 1000000.0);
         } else {
             printf(" Disabled! \n");
         }
     }
+    fflush(stdout);
 
     sleep(1);
 
@@ -227,37 +257,49 @@ int main(int argc, char* argv[]) {
         op->getWorkerCfg().printCfg();
         op->startWorkers();
     }
+    fflush(stdout);
 
-    list<uint> opFinished;
+    //== print statistic result
+    int summaryIntervalUs = 0;
+    config.getParamInt("SUMMARY_INTERVAL_SEC", summaryIntervalUs);
+    summaryIntervalUs = summaryIntervalUs * 1000000;
+
+    list<uint> opRunList;
     for (uint i = 0; i < OperationList.size(); i++) {
-        opFinished.push_back(i);
+        opRunList.push_back(i);
     }
-    while (opFinished.size() > 0) {
-        for (auto itr = opFinished.begin(); itr != opFinished.end();) {
+
+    int64_t lastTimeUs = getTimeUs();
+    while (opRunList.size() > 0) {
+        endTimeUs = getTimeUs();
+        if ((summaryIntervalUs > 0) && (endTimeUs - lastTimeUs) >= summaryIntervalUs) {
+            printSummary(OperationList, true, false);
+            fflush(stdout);
+            lastTimeUs = endTimeUs;
+        }
+
+        for (auto itr = opRunList.begin(); itr != opRunList.end();) {
             auto &op = OperationList[*itr];
             if (op->allWorkersFinished()) {
-                endTime = getTimeUs();
-                printf("\n>>> %-12s: Finish ...  (%.3fs) \n", op->getOpName().c_str(), op->getWorkerTimeUs() / 1000000.0);
-                printOpStatistics(*op);
-
-                itr = opFinished.erase(itr);
+                printf("\n>>> Finish Task: %-14s ... (%.3fs) \n", op->getOpName().c_str(), op->getWorkerTimeUs() / 1000000.0);
+                fflush(stdout);
+                itr = opRunList.erase(itr);
             } else {
                 itr++;
             }
         }
         sleep(1);
+        //int key = getchar();
     }
 
-//    if (OperationList.size() > 1) {
-//        printf("\n\n== Summary for all workers ==\n");
-//        printAllStatistics(OperationList);
-//    }
+    //== print overall statistics
+    printSummary(OperationList, false, true);
+    fflush(stdout);
 
     for (auto op: OperationList) {
-        op->waitForAllWorkersFinished();
+        op->waitForAllWorkerThreadsFinished();
     }
 
     return 0;
-
 }
 

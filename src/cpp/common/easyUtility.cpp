@@ -17,6 +17,7 @@
  * under the License.
  */
 
+#include <cstring>
 #include "easyUtility.hpp"
 
 int64_t getTimeUs() {
@@ -31,6 +32,17 @@ string getTimeStr() {
     time_t ts = tv.tv_sec;
     char str[30];
     strftime(str, sizeof(str), "%Y-%m-%d %T", localtime(&ts));
+    str[sizeof(str) - 1] = 0;
+
+    return string(str);
+};
+
+string msToTimeStr(long epochMs) {
+    time_t ts = epochMs / 1000;
+    char str[50];
+    strftime(str, sizeof(str), "%Y.%m.%d %T", localtime(&ts));
+    size_t len = strlen(str);
+    snprintf(str + len, sizeof(str) - len, ".%03ld", epochMs % 1000);
     str[sizeof(str) - 1] = 0;
 
     return string(str);

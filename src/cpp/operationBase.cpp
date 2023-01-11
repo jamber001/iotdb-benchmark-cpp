@@ -22,6 +22,14 @@
 
 using namespace std;
 
+int64_t OperationBase::getWorkerTimeUs() {
+    if (allWorkersFinished()) {
+        return workerEndTimeUs - workerStartTimeUs;
+    } else {
+        return getTimeUs() - workerStartTimeUs;
+    }
+};
+
 void OperationBase::startWorkers() {
     threads.reserve(workerCfg.sessionNum);
 
@@ -40,7 +48,7 @@ bool OperationBase::allWorkersFinished() {
     return  true;
 }
 
-void OperationBase::waitForAllWorkersFinished() {
+void OperationBase::waitForAllWorkerThreadsFinished() {
     for (int i = 0; i < workerCfg.sessionNum; ++i) {
         threads[i].join();
     }
@@ -196,8 +204,9 @@ void OperationBase::addLatency(int64_t latencyUs) {
     }
 
     latencyDataLock.lock();
-    latencyArray[latency]++;
+    (*latencyArrayPtr)[latency]++;
     latencyCount++;
+    latencySumUs += latencyUs;
     if (maxLatencyUs < (uint32_t) latencyUs) {
         maxLatencyUs = latencyUs;
     }
@@ -207,11 +216,25 @@ void OperationBase::addLatency(int64_t latencyUs) {
     latencyDataLock.unlock();
 }
 
-void OperationBase::genLatencySum() {
-    static uint permillageGoal[]={100,250,500,750,900, 950, 990, 999};
 
-    if (latencyCount  == 0) {   //If no point
-        for (auto it : permillageGoal ) {
+void OperationBase::doStatisticsCheckpoint() {
+    backupStatistics(newStatisticsInfo);
+    mergeStatisticsInfo(allStatisticsInfo, newStatisticsInfo);
+}
+
+void OperationBase::genFullStatisticsResult(StatisticsResult &result) {
+    genStatisticsResult(result, allStatisticsInfo);
+}
+
+void OperationBase::genDeltaStatisticsResult(StatisticsResult &result) {
+    genStatisticsResult(result, newStatisticsInfo);
+}
+
+void OperationBase::genLatencySum() {
+    static uint permillageGoal[] = {100, 250, 500, 750, 900, 950, 990, 999};
+
+    if (latencyCount == 0) {   //If no point
+        for (auto it: permillageGoal) {
             permillagResulteMap[it] = 0.0;
         }
         avgLatencyMs = 0.0;
@@ -219,11 +242,10 @@ void OperationBase::genLatencySum() {
     }
 
     uint64_t count = 0;
-    uint64_t latencySum = 0;
     uint permillageGoalIdx = 0;
     uint permillage = permillageGoal[permillageGoalIdx];
-    for (uint i = 0; i < latencyArray.size(); i++) {
-        count += latencyArray[i];
+    for (uint i = 0; i < (*latencyArrayPtr).size(); i++) {
+        count += (*latencyArrayPtr)[i];
         if (permillage <= (count * 1000) / latencyCount) {
             permillagResulteMap[permillage] = i / 100.0;
             permillageGoalIdx++;
@@ -232,9 +254,124 @@ void OperationBase::genLatencySum() {
             }
             permillage = permillageGoal[permillageGoalIdx];
         }
-
-        latencySum += i * latencyArray[i];
     }
-    avgLatencyMs = (latencySum * 1.0) / latencyCount / 100.0;
+    avgLatencyMs = (latencySumUs * 1.0) / latencyCount / 1000.0;
 }
+
+
+void OperationBase::genStatisticsResult(StatisticsResult &result, const StatisticsInfo &statisticsInfo) {
+    static uint permillageGoal[] = {100, 250, 500, 750, 900, 950, 990, 999};
+
+    result.reset();
+    result.opName = opName;
+    result.opStatus = allWorkersFinished() ? "Finished" : "Running";
+    result.beginTimeUs = statisticsInfo.beginTimeUs;
+    result.endTimeUs = statisticsInfo.endTimeUs;
+    if (statisticsInfo.latencyCount == 0) {   //If no point
+        for (auto it: permillageGoal) {
+            result.latencyPermillageMap[it] = 0.0;
+        }
+        result.minLatencyUs = 0;
+        return;
+    }
+
+    result.succOperationCount = statisticsInfo.succOperationCount;
+    result.succOperationCount = statisticsInfo.succOperationCount;
+    result.succInsertPointCount = statisticsInfo.succInsertPointCount;
+    result.failInsertPointCount = statisticsInfo.failInsertPointCount;
+
+    result.latencyCount = statisticsInfo.latencyCount;
+    result.latencySumUs = statisticsInfo.latencySumUs;
+    result.maxLatencyUs = statisticsInfo.maxLatencyUs;
+    result.minLatencyUs = statisticsInfo.minLatencyUs;
+
+    uint64_t count = 0;
+    uint permillageGoalIdx = 0;
+    uint permillage = permillageGoal[permillageGoalIdx];
+    for (uint i = 0; i < latencyArraySize; i++) {
+        count += (*statisticsInfo.latencyCountArrayPtr)[i];
+        if (permillage <= (count * 1000) / statisticsInfo.latencyCount) {
+            result.latencyPermillageMap[permillage] = i / 100.0;
+            permillageGoalIdx++;
+            if (permillageGoalIdx >= sizeof(permillageGoal)) {
+                break;
+            }
+            permillage = permillageGoal[permillageGoalIdx];
+        }
+    }
+    result.avgLatencyUs = statisticsInfo.latencySumUs / statisticsInfo.latencyCount;
+    result.latencyMaxRangUs = getmaxLatencyUs();
+}
+
+void OperationBase::backupStatistics(StatisticsInfo& backupInfo) {
+    if (lastCheckPointTimeUs == 0) {
+        lastCheckPointTimeUs = workerStartTimeUs;
+    }
+    backupInfo.beginTimeUs = lastCheckPointTimeUs;
+    if (allWorkersFinished()) {
+        lastCheckPointTimeUs = workerEndTimeUs;
+    } else {
+        lastCheckPointTimeUs = getTimeUs();
+    }
+    backupInfo.endTimeUs = lastCheckPointTimeUs;
+
+    backupInfo.succOperationCount = succOperationCount.exchange(0);
+    backupInfo.failOperationCount = failOperationCount.exchange(0);
+    backupInfo.succInsertPointCount = succInsertPointCount.exchange(0);
+    backupInfo.failInsertPointCount = failInsertPointCount.exchange(0);
+
+    vector<uint64_t> *newLatencyArrayPtr = &latencyArrayList[1];
+    if (newLatencyArrayPtr == latencyArrayPtr) {
+        newLatencyArrayPtr = &latencyArrayList[0];
+    }
+    for (uint i = 0; i < (*newLatencyArrayPtr).size(); i++) {
+        (*newLatencyArrayPtr)[i] = 0;
+    }
+
+    latencyDataLock.lock();
+    backupInfo.latencyCountArrayPtr = latencyArrayPtr;
+    backupInfo.latencyCount = latencyCount;
+    backupInfo.latencySumUs = latencySumUs;
+    backupInfo.minLatencyUs = minLatencyUs;
+    backupInfo.maxLatencyUs = maxLatencyUs;
+
+    latencyArrayPtr = newLatencyArrayPtr;
+    latencyCount = 0;
+    latencySumUs = 0;
+    minLatencyUs = 0xFFFFFFFF;
+    maxLatencyUs = 0;
+    latencyDataLock.unlock();
+}
+
+void OperationBase::mergeStatisticsInfo(StatisticsInfo& allInfo , StatisticsInfo& newInfo) {
+    if (allInfo.beginTimeUs > newInfo.beginTimeUs) {
+        allInfo.beginTimeUs = newInfo.beginTimeUs;
+    }
+    if (allInfo.endTimeUs < newInfo.endTimeUs) {
+        allInfo.endTimeUs = newInfo.endTimeUs;
+    }
+
+    allInfo.succOperationCount += newInfo.succOperationCount;
+    allInfo.failOperationCount += newInfo.failOperationCount;
+    allInfo.succInsertPointCount += newInfo.succInsertPointCount;
+    allInfo.failInsertPointCount += newInfo.failInsertPointCount;
+
+    for (int i = 0; i < latencyArraySize; ++i) {
+        (*allInfo.latencyCountArrayPtr)[i] += (*newInfo.latencyCountArrayPtr)[i];
+    }
+
+    allInfo.latencyCount += newInfo.latencyCount;
+    allInfo.latencySumUs += newInfo.latencySumUs;
+
+    if (allInfo.maxLatencyUs < newInfo.maxLatencyUs) {
+        allInfo.maxLatencyUs = newInfo.maxLatencyUs;
+    }
+    if (allInfo.minLatencyUs > newInfo.minLatencyUs) {
+        allInfo.minLatencyUs = newInfo.minLatencyUs;
+    }
+}
+
+
+
+
 

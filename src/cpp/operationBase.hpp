@@ -33,28 +33,92 @@
 
 using namespace std;
 
+struct StatisticsInfo {
+    int64_t beginTimeUs{0x7FFFFFFFFFFFFFFF};
+    int64_t endTimeUs{0};
+
+    uint64_t succOperationCount{0};
+    uint64_t failOperationCount{0};
+    uint64_t succInsertPointCount{0};
+    uint64_t failInsertPointCount{0};
+
+    vector<uint64_t> *latencyCountArrayPtr {nullptr};
+    uint64_t latencyCount{0};
+    uint64_t latencySumUs{0};
+
+    //== below 2 variables are from real-time calculate
+    uint maxLatencyUs{0}, minLatencyUs{0xFFFFFFFF};
+};
+
+class StatisticsResult {
+public:
+    void reset() {
+        opName.clear();
+        opStatus.clear();
+
+        beginTimeUs = 0;
+        endTimeUs = 0;
+        succOperationCount = 0;
+        failOperationCount = 0;
+        succInsertPointCount = 0;
+        failInsertPointCount = 0;
+
+        latencyCount = 0;
+        latencySumUs = 0;
+        maxLatencyUs = 0;
+        minLatencyUs = 0xFFFFFFFF;
+        avgLatencyUs = 0;
+        latencyPermillageMap.clear();
+    };
+
+    string opName;
+    string opStatus;
+    unsigned long long beginTimeUs{0}, endTimeUs{0};
+
+    unsigned long long succOperationCount{0};
+    unsigned long long failOperationCount{0};
+    unsigned long long succInsertPointCount{0};
+    unsigned long long failInsertPointCount{0};
+
+    unsigned long long latencyCount{0};
+    unsigned long long latencySumUs{0};
+    uint maxLatencyUs{0};
+    uint minLatencyUs{0xFFFFFFFF};
+    uint avgLatencyUs{0};
+    map<int, float> latencyPermillageMap;  // permillag => Latency(ms)
+    uint latencyMaxRangUs;
+};
+
 class OperationBase {
 public:
     OperationBase(const string &opName, const ServerCfg &serverCfg, const TaskCfg &workerCfg) : opName(opName),
                                                                                                 serverCfg(serverCfg),
                                                                                                 workerCfg(workerCfg) {
         srand(time(NULL));
-        latencyArray.resize(latencyArraySize, 0);
-        threadEnd.resize(latencyArraySize, false);
+
+        for (uint i = 0; i < 3; i++) {
+            latencyArrayList[i].resize(latencyArraySize, 0);
+        }
+        latencyArrayPtr = &latencyArrayList[0];
+        allStatisticsInfo.latencyCountArrayPtr = &latencyArrayList[2];
+
+        threadEnd.resize(workerCfg.sessionNum, false);
     }
 
-    virtual ~OperationBase() { };
+    virtual ~OperationBase() {};
 
     string getOpName() { return opName;};
     const TaskCfg& getWorkerCfg() { return workerCfg;};
-    int64_t getWorkerTimeUs() { return workerEndTimeUs - workerStartTimeUs; };
+    int64_t getWorkerStartTimeUs() { return workerStartTimeUs; };
+    int64_t getWorkerEndTimeUs() { return workerEndTimeUs; };
+    int64_t getWorkerTimeUs();
 
     bool createSessions();
     bool reCreatedSession(shared_ptr<Session> &session, int retryNum, int retryIntervalMs) ;
 
     void startWorkers();
     bool allWorkersFinished();
-    void waitForAllWorkersFinished();
+    void waitForAllWorkerThreadsFinished();
 
     virtual bool doPreWork() = 0;
     virtual bool createSchema() = 0;
@@ -77,8 +141,12 @@ public:
     unsigned long long getFailInsertPointCount() { return failInsertPointCount; };
 
     void addLatency(int64_t latencyUs);
-    void genLatencySum();
 
+    void genLatencySum(); //TODO:
+
+    void doStatisticsCheckpoint();
+    void genFullStatisticsResult(StatisticsResult &result);
+    void genDeltaStatisticsResult(StatisticsResult &result);
 
     float getAvgLatencyMs() { return avgLatencyMs; };
     uint getminLatencyUs() { return minLatencyUs; };
@@ -86,9 +154,14 @@ public:
     uint getLatencyMaxRangUs() { return (latencyArraySize - 1) * 10; };
     const map<int, float> &getPermillageMap() { return permillagResulteMap; };
 
+protected:
+    void backupStatistics(StatisticsInfo& backupInfo);
+    void mergeStatisticsInfo(StatisticsInfo &allInfo, StatisticsInfo &newInfo);
+    void genStatisticsResult(StatisticsResult &result, const StatisticsInfo &statisticsInfo);
+
 public:
     int64_t workerStartTimeUs;
-    atomic_llong workerEndTimeUs;
+    atomic_llong workerEndTimeUs {0};
 
 protected:
     string opName;
@@ -100,6 +173,8 @@ protected:
     vector <bool> threadEnd;
     vector <shared_ptr<Session>> sessions;
 
+    int64_t lastCheckPointTimeUs{0};
+
     atomic_ullong succOperationCount {0};
     atomic_ullong failOperationCount {0};
     atomic_ullong succInsertPointCount {0};
@@ -107,19 +182,27 @@ protected:
 
     //== For save latency data,
     static const int latencyArraySize = 100000;
-    float  avgLatencyMs{0.0} ;
-    map<int, float> permillagResulteMap;
+    float avgLatencyMs{0.0};
+    map<int, float> permillagResulteMap;  // permillag => Latency(ms)
 
-    mutex latencyDataLock;      //this lock will save below variables
-    vector<uint64_t> latencyArray;  //record the count per 0.01ms step
+    vector<uint64_t> latencyArrayList[3];  //record the count per 0.01ms step
+
+    mutex latencyDataLock;          //this lock will guard below variables
+    vector<uint64_t> *latencyArrayPtr;
     uint64_t latencyCount{0};
+    uint64_t latencySumUs{0};
     uint maxLatencyUs{0}, minLatencyUs{0xFFFFFFFF};
+
+    //== for backup the last checkpoint's Statistics Info
+    StatisticsInfo allStatisticsInfo, newStatisticsInfo;
 
 private:
     static void thread_entrance(OperationBase *opBase, int threadIdx) {
         opBase->worker(threadIdx);
         opBase->threadEnd[threadIdx] = true;
-        opBase->workerEndTimeUs = getTimeUs();
+        if (opBase->allWorkersFinished()) {
+            opBase->workerEndTimeUs = getTimeUs();
+        }
     };
 };
 

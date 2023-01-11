@@ -24,7 +24,7 @@
 
 class InsertTabletsOperation : public OperationBase {
 public:
-    InsertTabletsOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase("InsertTablets",
+    InsertTabletsOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase(taskCfg.taskName,
                                                                                                serverCfg,
                                                                                                taskCfg) {}
     bool doPreWork();

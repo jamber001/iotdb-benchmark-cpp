@@ -53,7 +53,7 @@ cmake --build ./build --target package      #make App package
 cp build/benchmark-cpp-1.0.0-Linux.zip  ~   #copy App package to any directory 
 cd ~
 unzip benchmark-cpp-1.0.0-Linux.zip
-cd benchmark-cpp-1.0.0-Linux
+cd benchmark-cpp-1.0.0-Linux/benchmark_cpp
 vi ./conf/main.conf                         #change the configuration
 ./benchmark-cpp.sh                          #run benchmark_cpp
 ```
