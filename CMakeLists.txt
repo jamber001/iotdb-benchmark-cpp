@@ -42,7 +42,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} iotdb_session pthread)
 
 
 # Install
-set(CMAKE_INSTALL_PREFIX "")
+set(CMAKE_INSTALL_PREFIX "benchmark_cpp")
 install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib

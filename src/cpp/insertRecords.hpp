@@ -28,9 +28,8 @@ using namespace  std;
 
 class InsertRecordsOperation : public OperationBase {
 public:
-    InsertRecordsOperation(const ServerCfg &serverCfg, const TaskCfg &workerCfg) : OperationBase("InsertRecords",
-                                                                                                 serverCfg,
-                                                                                                 workerCfg) {};
+    InsertRecordsOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase(taskCfg.taskName,
+                                                                                               serverCfg, taskCfg) {};
 
     bool doPreWork();
     bool createSchema() override;
