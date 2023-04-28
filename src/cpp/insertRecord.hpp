@@ -28,14 +28,16 @@ using namespace  std;
 class InsertRecordOperation : public OperationBase {
 public:
     InsertRecordOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase(taskCfg.taskName,
-                                                                                              serverCfg, taskCfg) {};
+                                                                                              serverCfg, taskCfg) {
+        sgPrefix = "record_";
+    };
 
     bool doPreWork();
-    bool createSchema() override;
 
     void worker(int threadIdx) override;
 
 private:
+
     void insertRecordsBatch(shared_ptr<Session> &session, int sgIdx, int deviceIdx, int64_t startTs);
 
     bool sendInsertRecord(shared_ptr<Session> &session,
@@ -53,8 +55,6 @@ private:
     string genValue(TSDataType::TSDataType);
 
 private:
-    string sgPrefix = "record_";
-
     vector<string> measurements4OneRecord;           //it is used by all Sessions
     vector<TSDataType::TSDataType> types4OneRecord;  //it is used by all Sessions
 

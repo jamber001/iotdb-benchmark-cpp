@@ -41,8 +41,9 @@ struct TaskCfg {
     string taskType;
 
     int workMode = 0;    //optional parameter
-    bool createSchema = true;    //optional parameter
-    bool tagsEnable = false;      //optional parameter
+    bool createSchema = true;        //optional parameter
+    bool timeAlignedEnable = false;  //optional parameter
+    bool tagsEnable = false;         //optional parameter
     int sessionNum = 5;
 
     long long sgTTL = 0;  //optional parameter
@@ -73,6 +74,8 @@ struct TaskCfg {
         config.getParamInt("WORK_MODE", workMode, taskName);  //optional parameter
         createSchema = true;
         config.getParamBool("CREATE_SCHEMA", createSchema, taskName);  //optional parameter
+        timeAlignedEnable = false;
+        config.getParamBool("TIME_ALIGNED_ENABLE", timeAlignedEnable, taskName);  //optional parameter
         tagsEnable = false;
         config.getParamBool("TAGS_ENABLE", tagsEnable, taskName);  //optional parameter
 
@@ -103,6 +106,7 @@ struct TaskCfg {
     void printCfg() const {
         printf("   taskName=%s\n", taskName.c_str());
         printf("   taskType=%s\n", taskType.c_str());
+        printf("   timeAlignedEnable=%s\n", timeAlignedEnable ? "True" : "False");
         printf("   tagsEnable=%s\n", tagsEnable ? "True" : "False");
         printf("   workMode=%d\n", workMode);
         printf("   sessionNum=%d\n", sessionNum);

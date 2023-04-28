@@ -54,6 +54,124 @@ void OperationBase::waitForAllWorkerThreadsFinished() {
     }
 }
 
+
+bool OperationBase::createSchema() {
+    if (sessionPtrs.size() <= 0) {
+        error_log("Invalid sessionPtrs. sessionPtrs.size()=%lu.", sessionPtrs.size());
+        return false;
+    }
+
+    Session *sessionPtr = sessionPtrs[0].get();
+
+    if (!workerCfg.timeAlignedEnable) {
+        return createSchema_NonAligned(sessionPtr);
+    } else {
+        return createSchema_Aligned(sessionPtr);
+    }
+}
+
+bool OperationBase::createSchema_NonAligned(Session *sessionPtr) {
+    int count = workerCfg.storageGroupNum * workerCfg.deviceNum * workerCfg.sensorNum;
+    vector <string> paths;
+    vector <TSDataType::TSDataType> tsDataTypes;
+    vector <TSEncoding::TSEncoding> tsEncodings;
+    vector <CompressionType::CompressionType> compressionTypes;
+    vector <map<string, string>> tagsList;
+    tsDataTypes.reserve(count);
+    tsEncodings.reserve(count);
+    compressionTypes.reserve(count);
+    for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
+        string sgPath= getPath(sgPrefix, sgIdx);
+        sessionPtr->setStorageGroup(sgPath);
+        setSgTTL(*sessionPtr, sgPath, workerCfg.sgTTL);
+        for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
+            string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
+            for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
+                string sensorPath = getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
+                if (sessionPtr->checkTimeseriesExists(sensorPath)) {
+                    error_log("create NonAligned Schema, TimeSeries(%s) has existed.", sensorPath.c_str());
+                    return  false;
+                }
+
+                paths.push_back(sensorPath);
+                int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
+                tsDataTypes.push_back(getTsDataType(workerCfg.dataTypeList[typeIdx]));
+                tsEncodings.push_back(getTsEncodingType(workerCfg.dataTypeList[typeIdx]));
+                compressionTypes.push_back(getCompressionType(workerCfg.dataTypeList[typeIdx]));
+
+                if (workerCfg.tagsEnable) {
+                    map<string, string> tags;
+                    tags["tag1"] = devicePath + "tv1";
+                    tags["tag2"] = devicePath + "tv2";
+                    tagsList.push_back(tags);
+                }
+            }
+        }
+    }
+    vector <map<string, string>> *tagsListPtr = nullptr;
+    if (!tagsList.empty()) {
+        tagsListPtr = &tagsList;
+    }
+
+    sessionPtr->createMultiTimeseries(paths, tsDataTypes, tsEncodings, compressionTypes, nullptr, tagsListPtr, nullptr, nullptr);
+
+    return true;
+}
+
+bool OperationBase::createSchema_Aligned(Session *sessionPtr) {
+    vector<string> measurements;
+    vector <TSDataType::TSDataType> tsDataTypes;
+    vector <TSEncoding::TSEncoding> tsEncodings;
+    vector <CompressionType::CompressionType> compressionTypes;
+    measurements.reserve(workerCfg.sensorNum);
+    tsDataTypes.reserve(workerCfg.sensorNum);
+    tsEncodings.reserve(workerCfg.sensorNum);
+    compressionTypes.reserve(workerCfg.sensorNum);
+
+    for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
+        measurements.push_back(getSensorStr(sensorIdx));
+        int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
+        tsDataTypes.push_back(getTsDataType(workerCfg.dataTypeList[typeIdx]));
+        tsEncodings.push_back(getTsEncodingType(workerCfg.dataTypeList[typeIdx]));
+        compressionTypes.push_back(getCompressionType(workerCfg.dataTypeList[typeIdx]));
+    }
+
+    for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
+        string sgPath= getPath(sgPrefix, sgIdx);
+        sessionPtr->setStorageGroup(sgPath);
+        setSgTTL(*sessionPtr, sgPath, workerCfg.sgTTL);
+
+        for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
+            for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
+                string sensorPath = getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
+                if (sessionPtr->checkTimeseriesExists(sensorPath)) {
+                    error_log("create Time-Aligned Schema, TimeSeries(%s) has existed.", sensorPath.c_str());
+                    return  false;
+                }
+            }
+            string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
+            sessionPtr->createAlignedTimeseries(devicePath, measurements, tsDataTypes, tsEncodings, compressionTypes);
+
+
+//            //TODO: wait for Session::createAlignedTimeseries() to support tagsList
+//            vector <map<string, string>> tagsList;
+//            if (workerCfg.tagsEnable) {
+//                map<string, string> tags;
+//                tags["tag1"] = devicePath + "tv1";
+//                tags["tag2"] = devicePath + "tv2";
+//                tagsList.push_back(tags);
+//            }
+//            vector <map<string, string>> *tagsListPtr = nullptr;
+//            if (!tagsList.empty()) {
+//                tagsListPtr = &tagsList;
+//            }
+//            sessionPtr->createAlignedTimeseries(devicePath, measurements, tsDataTypes, tsEncodings, compressionTypes, tagsListPtr);
+        }
+    }
+
+    return true;
+}
+
 bool OperationBase::reCreatedSession(shared_ptr<Session> &session, int retryNum, int retryIntervalMs) {
     int i;
     for (i = 0; i < retryNum; ++i) {
@@ -75,11 +193,11 @@ bool OperationBase::reCreatedSession(shared_ptr<Session> &session, int retryNum,
 bool OperationBase::createSessions() {
     debug_log("workerCfg.sessionNum=%d", workerCfg.sessionNum);
 
-    sessions.reserve(workerCfg.sessionNum);
+    sessionPtrs.reserve(workerCfg.sessionNum);
     for (int i = 0; i < workerCfg.sessionNum; ++i) {
-        sessions.emplace_back(new Session(serverCfg.host, serverCfg.port, serverCfg.user, serverCfg.passwd));
-        debug_log("sessions.size()=%lu, i=%d", sessions.size(), i);
-        (*sessions.rbegin())->open(serverCfg.rpcCompression, 1000);  //enableRPCCompression=false, connectionTimeoutInMs=1000
+        sessionPtrs.emplace_back(new Session(serverCfg.host, serverCfg.port, serverCfg.user, serverCfg.passwd));
+        debug_log("sessionPtrs.size()=%lu, i=%d", sessionPtrs.size(), i);
+        (*sessionPtrs.rbegin())->open(serverCfg.rpcCompression, 1000);  //enableRPCCompression=false, connectionTimeoutInMs=1000
     }
 
     return true;

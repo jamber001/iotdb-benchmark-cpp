@@ -121,7 +121,10 @@ public:
     void waitForAllWorkerThreadsFinished();
 
     virtual bool doPreWork() = 0;
-    virtual bool createSchema() = 0;
+
+    virtual bool createSchema();
+    virtual bool createSchema_NonAligned(Session *sessionPtr);  //This function will be called by createSchema()
+    virtual bool createSchema_Aligned(Session *sessionPtr);     //This function will be called by createSchema()
 
     virtual void worker(int threadIdx) = 0;
 
@@ -169,9 +172,11 @@ protected:
     ServerCfg serverCfg;
     TaskCfg workerCfg;
 
+    string sgPrefix = "sgPrefix_";
+
     vector <thread> threads;
     vector <bool> threadEnd;
-    vector <shared_ptr<Session>> sessions;
+    vector <shared_ptr<Session>> sessionPtrs;
 
     int64_t lastCheckPointTimeUs{0};
 

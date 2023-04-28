@@ -27,10 +27,11 @@
 class InsertTabletOperation : public OperationBase {
 public:
     InsertTabletOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase(taskCfg.taskName,
-                                                                                              serverCfg, taskCfg) {}
+                                                                                              serverCfg, taskCfg) {
+        sgPrefix = "tablet_";
+    }
 
     bool doPreWork();
-    bool createSchema() override;
 
     void worker(int threadIdx) override;
 
@@ -41,8 +42,6 @@ private:
     void sendInsertTablet(shared_ptr<Session> &session, TSInsertTabletReq &tsInsertTabletReq);
 
 private:
-    string sgPrefix = "tablet_";
-
     vector<pair<string, TSDataType::TSDataType>> schemaList4Device;
 
     vector<TSInsertTabletReq>  requestList;   //for mode1, sgIdx ==> TSInsertTabletReq

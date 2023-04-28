@@ -26,9 +26,10 @@ class InsertTabletsOperation : public OperationBase {
 public:
     InsertTabletsOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase(taskCfg.taskName,
                                                                                                serverCfg,
-                                                                                               taskCfg) {}
+                                                                                               taskCfg) {
+        sgPrefix = "tablets_";
+    }
     bool doPreWork();
-    bool createSchema() override;
 
     void worker(int threadIdx) override;
 
@@ -39,8 +40,6 @@ private:
 private:
     vector<unordered_map<string, Tablet *>> tabletMapList;   //sgId => tabletMap (devicePath => Tablet*)
     vector<vector<Tablet>> tabletsList;     //sgId => tablets;
-
-    string sgPrefix = "tablets_";
 };
 
 

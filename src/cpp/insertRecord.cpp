@@ -24,50 +24,10 @@
 
 using namespace  std;
 
-bool InsertRecordOperation::createSchema() {
-    if (sessions.size() <= 0) {
-        error_log("Invalid sessions. sessions.size()=%lu.", sessions.size());
-        return false;
-    }
-
-    Session *session = sessions[0].get();
-
-    int count = workerCfg.storageGroupNum * workerCfg.deviceNum * workerCfg.sensorNum;
-    vector <string> paths;
-    vector <TSDataType::TSDataType> tsDataTypes;
-    vector <TSEncoding::TSEncoding> tsEncodings;
-    vector <CompressionType::CompressionType> compressionTypes;
-    tsDataTypes.reserve(count);
-    tsEncodings.reserve(count);
-    compressionTypes.reserve(count);
-    for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
-        string sgPath= getPath(sgPrefix, sgIdx);
-        session->setStorageGroup(sgPath);
-        setSgTTL(*session, sgPath, workerCfg.sgTTL);
-        for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
-            for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-                string path= getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
-                if (!session->checkTimeseriesExists(path)) {
-                    paths.push_back(path);
-                    int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
-                    tsDataTypes.push_back(getTsDataType(workerCfg.dataTypeList[typeIdx]));
-                    tsEncodings.push_back(getTsEncodingType(workerCfg.dataTypeList[typeIdx]));
-                    compressionTypes.push_back(getCompressionType(workerCfg.dataTypeList[typeIdx]));
-                }
-            }
-        }
-    }
-
-    session->createMultiTimeseries(paths, tsDataTypes, tsEncodings, compressionTypes, nullptr, nullptr, nullptr, nullptr);
-
-    return true;
-}
-
-
 void InsertRecordOperation::worker(int threadIdx) {
     debug_log("Enter InsertRecordOperation::worker(%d)", threadIdx);
 
-    shared_ptr<Session> &session= sessions[threadIdx % sessions.size()];
+    shared_ptr<Session> &session= sessionPtrs[threadIdx % sessionPtrs.size()];
 
     int64_t startTs = workerCfg.startTimestamp;
     for (int i = 0; i < workerCfg.loopNum; ++i) {
@@ -190,7 +150,11 @@ bool InsertRecordOperation::sendInsertRecord(shared_ptr<Session> &session,
                                              const vector<string> &valuesList){
     try {
         int64_t startTimeUs = getTimeUs();
-        session->insertRecord(deviceId, timestamps, measurements, valuesList);
+        if (!workerCfg.timeAlignedEnable) {
+            session->insertRecord(deviceId, timestamps, measurements, valuesList);
+        } else {
+            session->insertAlignedRecord(deviceId, timestamps, measurements, valuesList);
+        }
         addLatency(getTimeUs() - startTimeUs);
         return true;
     } catch (exception & e) {
@@ -218,6 +182,11 @@ bool InsertRecordOperation::sendInsertRecord2(shared_ptr<Session> &session,
     try {
         int64_t startTimeUs = getTimeUs();
         session->insertRecord(deviceId, timestamps, measurementsList, typesList, valuesList);
+        if (!workerCfg.timeAlignedEnable) {
+            session->insertRecord(deviceId, timestamps, measurementsList, typesList, valuesList);
+        } else {
+            session->insertAlignedRecord(deviceId, timestamps, measurementsList, typesList, valuesList);
+        }
         addLatency(getTimeUs() - startTimeUs);
         return true;
     } catch (exception & e) {

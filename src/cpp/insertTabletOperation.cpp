@@ -21,60 +21,6 @@
 #include <stdio.h>
 #include "easyUtility.hpp"
 
-
-bool InsertTabletOperation::createSchema() {
-    if (sessions.size() <= 0) {
-        error_log("Invalid sessions. sessions.size()=%lu.", sessions.size());
-        return false;
-    }
-
-    shared_ptr<Session> session = sessions[0];
-
-    int count = workerCfg.storageGroupNum * workerCfg.deviceNum * workerCfg.sensorNum;
-    vector <string> paths;
-    vector <TSDataType::TSDataType> tsDataTypes;
-    vector <TSEncoding::TSEncoding> tsEncodings;
-    vector <CompressionType::CompressionType> compressionTypes;
-    vector <map<string, string>> tagsList;
-    tsDataTypes.reserve(count);
-    tsEncodings.reserve(count);
-    compressionTypes.reserve(count);
-    for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
-        string sgPath= getPath(sgPrefix, sgIdx);
-        session->setStorageGroup(sgPath);
-        setSgTTL(*session, sgPath, workerCfg.sgTTL);
-        for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
-            string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
-            for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-                string path= getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
-                if (!session->checkTimeseriesExists(path)) {
-                    paths.push_back(path);
-                    int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
-                    tsDataTypes.push_back(getTsDataType(workerCfg.dataTypeList[typeIdx]));
-                    tsEncodings.push_back(getTsEncodingType(workerCfg.dataTypeList[typeIdx]));
-                    compressionTypes.push_back(getCompressionType(workerCfg.dataTypeList[typeIdx]));
-
-                    if (workerCfg.tagsEnable) {
-                        map<string, string> tags;
-                        tags["tag1"] = devicePath + "tv1";
-                        tags["tag2"] = devicePath + "tv2";
-                        tagsList.push_back(tags);
-                    }
-                }
-            }
-        }
-    }
-    vector <map<string, string>> *tagsListPtr = nullptr;
-    if (!tagsList.empty()) {
-        tagsListPtr = &tagsList;
-    }
-
-    session->createMultiTimeseries(paths, tsDataTypes, tsEncodings, compressionTypes, nullptr, tagsListPtr, nullptr, nullptr);
-
-    return true;
-}
-
-
 bool InsertTabletOperation::doPreWork() {
     schemaList4Device.reserve(workerCfg.sensorNum);
     for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
@@ -144,6 +90,7 @@ bool InsertTabletOperation::doPreWork() {
                 }
             }
         }
+        tablet.setAligned(workerCfg.timeAlignedEnable);
         Session::buildInsertTabletReq(requestList[sgIdx], 0ll, tablet, true);
     }
 
@@ -153,7 +100,7 @@ bool InsertTabletOperation::doPreWork() {
 void InsertTabletOperation::worker(int threadIdx) {
     debug_log("Enter InsertTabletOperation_old::worker(%d)", threadIdx);
 
-    shared_ptr<Session> &session= sessions[threadIdx % sessions.size()];
+    shared_ptr<Session> &session= sessionPtrs[threadIdx % sessionPtrs.size()];
 
     //int64_t startTs = workerCfg.startTimestamp;  //TODO:
     int64_t startTs = (workerCfg.startTimestamp >> 8) << 8 ;

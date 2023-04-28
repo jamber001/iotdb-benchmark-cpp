@@ -29,10 +29,11 @@ using namespace  std;
 class InsertRecordsOperation : public OperationBase {
 public:
     InsertRecordsOperation(const ServerCfg &serverCfg, const TaskCfg &taskCfg) : OperationBase(taskCfg.taskName,
-                                                                                               serverCfg, taskCfg) {};
+                                                                                               serverCfg, taskCfg) {
+        sgPrefix = "records_";
+    };
 
     bool doPreWork();
-    bool createSchema() override;
 
     void worker(int threadIdx) override;
 
@@ -53,8 +54,6 @@ private:
     string genValueStr(TSDataType::TSDataType);
 
 private:
-    string sgPrefix = "records_";
-
     vector<vector<string>> measurementsList;    //all Sessions use same measurementsList
     vector<vector<TSDataType::TSDataType>> typesList; //all Sessions use same typesList
     vector<vector<string>> valuesList;         //all Sessions use same valuesList
