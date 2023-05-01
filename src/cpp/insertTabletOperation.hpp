@@ -42,10 +42,8 @@ private:
     void sendInsertTablet(shared_ptr<Session> &session, TSInsertTabletReq &tsInsertTabletReq);
 
 private:
-    vector<pair<string, TSDataType::TSDataType>> schemaList4Device;
-
     vector<TSInsertTabletReq>  requestList;   //for mode1, sgIdx ==> TSInsertTabletReq
-    vector<Tablet>  tabletList;    //for mode2, sgIdx ==> Tablet
+    vector<Tablet>  tabletList;               //for mode2, sgIdx ==> Tablet
 };
 
 

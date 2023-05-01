@@ -32,7 +32,7 @@ public:
         sgPrefix = "record_";
     };
 
-    bool doPreWork();
+    bool doPreWork() override;
 
     void worker(int threadIdx) override;
 
@@ -52,14 +52,9 @@ private:
                            const vector<TSDataType::TSDataType> &typesList,
                            const vector<char *> &valuesList);
 
-    string genValue(TSDataType::TSDataType);
-
 private:
-    vector<string> measurements4OneRecord;           //it is used by all Sessions
-    vector<TSDataType::TSDataType> types4OneRecord;  //it is used by all Sessions
-
-    vector<vector<string>> valuesList;                //it is used by all Sessions
-    vector<vector<char *>> valuesList2;               //it is used by all Sessions
+    vector<vector<string>> recordValueList;       //it is used by all Sessions
+    vector<vector<char *>> recordValueList2;      //it is used by all Sessions
 };
 
 

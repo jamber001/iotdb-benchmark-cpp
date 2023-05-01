@@ -27,7 +27,13 @@
 using namespace std;
 
 int64_t getTimeUs();
+
 string getTimeStr();
+
 string msToTimeStr(long epochSec);
+
+void trimStr(string &s);
+
+string getTrimStr(const string &s);
 
 #endif //UTILITY_HPP

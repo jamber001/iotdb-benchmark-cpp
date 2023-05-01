@@ -47,3 +47,24 @@ string msToTimeStr(long epochMs) {
 
     return string(str);
 };
+
+void trimStr(string &s) {
+    std::size_t pos1 = s.find_first_not_of(" \t");
+    if (string::npos == pos1) {
+        s.clear();
+        return;
+    }
+
+    std::size_t pos2 = s.find_last_not_of(" \t");
+    s.substr(pos1, pos2 - pos1 + 1);
+}
+
+string getTrimStr(const string &s) {
+    std::size_t pos1 = s.find_first_not_of(" \t");
+    if (string::npos == pos1) {
+        return "";
+    }
+
+    std::size_t pos2 = s.find_last_not_of(" \t");
+    return s.substr(pos1, pos2 - pos1 + 1);
+}

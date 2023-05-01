@@ -120,6 +120,7 @@ public:
     bool allWorkersFinished();
     void waitForAllWorkerThreadsFinished();
 
+    virtual void prepareOneDeviceMeasurementsTypes();
     virtual bool doPreWork() = 0;
 
     virtual bool createSchema();
@@ -129,9 +130,6 @@ public:
     virtual void worker(int threadIdx) = 0;
 
     bool setSgTTL(Session &session, const string &sgPath, int64_t ttlValueMs);
-    static TSDataType::TSDataType getTsDataType(const string &typeStr);
-    static TSEncoding::TSEncoding getTsEncodingType(const string &typeStr);
-    static CompressionType::CompressionType getCompressionType(const string &typeStr);
 
     static string getPath(const string &sgPrefix, int sgIdx, int deviceIdx, int sensorIdx);
     static string getPath(const string &sgPrefix, int sgIdx, int deviceIdx);
@@ -174,6 +172,9 @@ protected:
 
     string sgPrefix = "sgPrefix_";
 
+    vector<string> sensorNames4OneRecord;           //it is used by all Sessions
+    vector<TSDataType::TSDataType> types4OneRecord;  //it is used by all Sessions
+
     vector <thread> threads;
     vector <bool> threadEnd;
     vector <shared_ptr<Session>> sessionPtrs;
@@ -200,6 +201,12 @@ protected:
 
     //== for backup the last checkpoint's Statistics Info
     StatisticsInfo allStatisticsInfo, newStatisticsInfo;
+
+protected:
+    void genRandData(TSDataType::TSDataType tsDataType, void *dataPtr, int TextSize = 2);
+    void genRandData(int sensorIdx, void *dataPtr);
+    string genRandDataStr(TSDataType::TSDataType tsDataType);
+    string genRandDataStr(int sensorIdx);
 
 private:
     static void thread_entrance(OperationBase *opBase, int threadIdx) {

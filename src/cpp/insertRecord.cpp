@@ -47,61 +47,19 @@ void InsertRecordOperation::worker(int threadIdx) {
 
 }
 
-string InsertRecordOperation::genValue(TSDataType::TSDataType tsDataType) {
-    int randInt = rand();
-    switch (tsDataType) {
-        case TSDataType::BOOLEAN: {
-            return (randInt % 2) == 0 ? string("0") : string("1");
-        }
-        case TSDataType::INT32: {
-            return to_string(randInt);
-        }
-        case TSDataType::INT64: {
-            return to_string(randInt * (long long int) randInt);
-        }
-        case TSDataType::FLOAT: {
-            return to_string((float) (randInt / 33.3));
-        }
-        case TSDataType::DOUBLE: {
-            return to_string((double) (randInt / 11.3));
-        }
-        case TSDataType::TEXT: {
-            string str(workerCfg.textDataLen, 's');
-            char *p = (char *) str.c_str();
-            for (uint i = 0; i < str.size(); i = i + 2) {
-                *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
-                *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
-            }
-            return str;
-        }
-        case TSDataType::NULLTYPE:
-        default:
-            return string();
-    }
-}
-
 bool InsertRecordOperation::doPreWork() {
-    measurements4OneRecord.reserve(workerCfg.sensorNum);
-    types4OneRecord.reserve(workerCfg.sensorNum);
+    prepareOneDeviceMeasurementsTypes();
 
-    for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-        string sensorStr = getSensorStr(sensorIdx);
-        measurements4OneRecord.emplace_back(sensorStr);
-        int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
-        TSDataType::TSDataType tsDataType = getTsDataType(workerCfg.dataTypeList[typeIdx]);
-        types4OneRecord.emplace_back(tsDataType);
-    }
-
-    int num = 64;
-    valuesList.resize(num);
-    valuesList2.resize(num);
+    int num = 128;
+    recordValueList.resize(num);
+    recordValueList2.resize(num);
     for (int i = 0; i < num; ++i) {
-        auto &values4OneRecord = valuesList[i];
-        auto &values4OneRecord2 = valuesList2[i];
+        auto &values4OneRecord = recordValueList[i];
+        auto &values4OneRecord2 = recordValueList2[i];
         values4OneRecord.reserve(workerCfg.sensorNum);
         values4OneRecord2.reserve(workerCfg.sensorNum);
-        for (auto tsDataType: types4OneRecord) {
-            values4OneRecord.push_back(move(genValue(tsDataType)));
+        for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
+            values4OneRecord.push_back(move(genRandDataStr(sensorIdx)));
             values4OneRecord2.push_back((char *) values4OneRecord.rbegin()->c_str());
         }
     }
@@ -115,14 +73,14 @@ void InsertRecordOperation::insertRecordsBatch(shared_ptr<Session> &session, int
 
     uint64_t succCount = 0;
     for (int i = 0; i < workerCfg.batchSize; ++i) {
-        auto &values4OneRecord = valuesList[i % valuesList.size()];
-        auto &values4OneRecord2 = valuesList2[i % valuesList.size()];
         if (workerCfg.workMode == 0) {
-            if (sendInsertRecord(session, deviceId, startTs, measurements4OneRecord, values4OneRecord) ){
+            auto &values4OneRecord = recordValueList[i % recordValueList.size()];
+            if (sendInsertRecord(session, deviceId, startTs, sensorNames4OneRecord, values4OneRecord) ){
                 succCount++;
             }
         } else {
-            if (sendInsertRecord2(session, deviceId, startTs, measurements4OneRecord, types4OneRecord, values4OneRecord2)) {
+            auto &values4OneRecord2 = recordValueList2[i % recordValueList2.size()];
+            if (sendInsertRecord2(session, deviceId, startTs, sensorNames4OneRecord, types4OneRecord, values4OneRecord2)) {
                 succCount++;
             }
         }
@@ -132,13 +90,13 @@ void InsertRecordOperation::insertRecordsBatch(shared_ptr<Session> &session, int
 
     if ( succCount > 0 ) {
         succOperationCount += succCount;
-        succInsertPointCount += (succCount * measurements4OneRecord.size());
+        succInsertPointCount += (succCount * sensorNames4OneRecord.size());
     }
 
     uint64_t failCount = workerCfg.batchSize - succCount;
     if ( failCount > 0 ) {
         failOperationCount += failCount;
-        failInsertPointCount += (failCount * measurements4OneRecord.size());
+        failInsertPointCount += (failCount * sensorNames4OneRecord.size());
     }
 }
 

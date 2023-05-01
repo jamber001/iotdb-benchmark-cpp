@@ -54,6 +54,16 @@ void OperationBase::waitForAllWorkerThreadsFinished() {
     }
 }
 
+void OperationBase::prepareOneDeviceMeasurementsTypes() {
+    sensorNames4OneRecord.reserve(workerCfg.fieldInfo4OneRecord.size());
+    types4OneRecord.reserve(workerCfg.fieldInfo4OneRecord.size());
+
+    for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
+        string sensorStr = getSensorStr(sensorIdx);
+        sensorNames4OneRecord.emplace_back(workerCfg.fieldInfo4OneRecord[sensorIdx].sensorName);
+        types4OneRecord.emplace_back(workerCfg.fieldInfo4OneRecord[sensorIdx].dataType);
+    }
+}
 
 bool OperationBase::createSchema() {
     if (sessionPtrs.size() <= 0) {
@@ -87,17 +97,16 @@ bool OperationBase::createSchema_NonAligned(Session *sessionPtr) {
         for (int deviceIdx = 0; deviceIdx < workerCfg.deviceNum; ++deviceIdx) {
             string devicePath = getPath(sgPrefix, sgIdx, deviceIdx);
             for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-                string sensorPath = getPath(sgPrefix, sgIdx, deviceIdx, sensorIdx);
+                string sensorPath = devicePath + "." + workerCfg.fieldInfo4OneRecord[sensorIdx].sensorName;
                 if (sessionPtr->checkTimeseriesExists(sensorPath)) {
                     error_log("create NonAligned Schema, TimeSeries(%s) has existed.", sensorPath.c_str());
                     return  false;
                 }
 
                 paths.push_back(sensorPath);
-                int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
-                tsDataTypes.push_back(getTsDataType(workerCfg.dataTypeList[typeIdx]));
-                tsEncodings.push_back(getTsEncodingType(workerCfg.dataTypeList[typeIdx]));
-                compressionTypes.push_back(getCompressionType(workerCfg.dataTypeList[typeIdx]));
+                tsDataTypes.push_back(workerCfg.fieldInfo4OneRecord[sensorIdx].dataType);
+                tsEncodings.push_back(workerCfg.fieldInfo4OneRecord[sensorIdx].encodeType);
+                compressionTypes.push_back(workerCfg.fieldInfo4OneRecord[sensorIdx].compressionType);
 
                 if (workerCfg.tagsEnable) {
                     map<string, string> tags;
@@ -129,11 +138,10 @@ bool OperationBase::createSchema_Aligned(Session *sessionPtr) {
     compressionTypes.reserve(workerCfg.sensorNum);
 
     for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-        measurements.push_back(getSensorStr(sensorIdx));
-        int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
-        tsDataTypes.push_back(getTsDataType(workerCfg.dataTypeList[typeIdx]));
-        tsEncodings.push_back(getTsEncodingType(workerCfg.dataTypeList[typeIdx]));
-        compressionTypes.push_back(getCompressionType(workerCfg.dataTypeList[typeIdx]));
+        measurements.push_back(workerCfg.fieldInfo4OneRecord[sensorIdx].sensorName);
+        tsDataTypes.push_back(workerCfg.fieldInfo4OneRecord[sensorIdx].dataType);
+        tsEncodings.push_back(workerCfg.fieldInfo4OneRecord[sensorIdx].encodeType);
+        compressionTypes.push_back(workerCfg.fieldInfo4OneRecord[sensorIdx].compressionType);
     }
 
     for (int sgIdx = 0; sgIdx < workerCfg.storageGroupNum; ++sgIdx) {
@@ -191,7 +199,7 @@ bool OperationBase::reCreatedSession(shared_ptr<Session> &session, int retryNum,
 }
 
 bool OperationBase::createSessions() {
-    debug_log("workerCfg.sessionNum=%d", workerCfg.sessionNum);
+    debug_log("createSessions(), workerCfg.sessionNum=%d", workerCfg.sessionNum);
 
     sessionPtrs.reserve(workerCfg.sessionNum);
     for (int i = 0; i < workerCfg.sessionNum; ++i) {
@@ -221,68 +229,6 @@ bool OperationBase::setSgTTL(Session &session, const string &sgPath, int64_t ttl
     }
 
     return true;
-}
-
-TSDataType::TSDataType OperationBase::getTsDataType(const string &typeStr) {
-    static unordered_map<string, TSDataType::TSDataType> mapStr2Type = {
-            {"BOOLEAN", TSDataType::BOOLEAN},
-            {"INT32", TSDataType::INT32},
-            {"INT64",TSDataType::INT64},
-            {"FLOAT",TSDataType::FLOAT},
-            {"DOUBLE",TSDataType::DOUBLE},
-            {"TEXT",TSDataType::TEXT},
-            {"NULLTYPE",TSDataType::NULLTYPE},
-    };
-
-    auto itr = mapStr2Type.find (typeStr);
-    if ( itr == mapStr2Type.end() ) {
-        error_log("invalid typeStr=%s", typeStr.c_str());
-        return TSDataType::TEXT;
-    }
-
-    return itr->second;
-}
-
-TSEncoding::TSEncoding OperationBase::getTsEncodingType(const string &typeStr) {
-    //return TSEncoding::PLAIN;
-
-    static unordered_map<string, TSEncoding::TSEncoding> mapStr2Type = {
-            {"BOOLEAN", TSEncoding::RLE},
-            {"INT32", TSEncoding::RLE},
-            {"INT64",TSEncoding::RLE},
-            {"FLOAT",TSEncoding::GORILLA},
-            {"DOUBLE",TSEncoding::GORILLA},
-            {"TEXT",TSEncoding::PLAIN},
-            {"NULLTYPE",TSEncoding::PLAIN},
-    };
-
-    auto itr = mapStr2Type.find (typeStr);
-    if ( itr == mapStr2Type.end() ) {
-        error_log("invalid typeStr=%s", typeStr.c_str());
-        return TSEncoding::RLE;
-    }
-
-    return itr->second;
-}
-
-CompressionType::CompressionType OperationBase::getCompressionType(const string &typeStr) {
-    static unordered_map<string, CompressionType::CompressionType> mapStr2Type = {
-            {"BOOLEAN", CompressionType::SNAPPY},
-            {"INT32", CompressionType::SNAPPY},
-            {"INT64",CompressionType::SNAPPY},
-            {"FLOAT",CompressionType::SNAPPY},
-            {"DOUBLE",CompressionType::SNAPPY},
-            {"TEXT",CompressionType::SNAPPY},
-            {"NULLTYPE",CompressionType::SNAPPY},
-    };
-
-    auto itr = mapStr2Type.find (typeStr);
-    if ( itr == mapStr2Type.end() ) {
-        error_log("invalid typeStr=%s", typeStr.c_str());
-        return CompressionType::SNAPPY;
-    }
-
-    return itr->second;
 }
 
 string OperationBase::getPath(const string &sgPrefix, int sgIdx, int deviceIdx, int sensorIdx) {
@@ -488,6 +434,173 @@ void OperationBase::mergeStatisticsInfo(StatisticsInfo& allInfo , StatisticsInfo
         allInfo.minLatencyUs = newInfo.minLatencyUs;
     }
 }
+
+//
+//
+//void OperationBase::genRandData(TSDataType::TSDataType tsDataType, void *dataPtr, int TextSize /*= 2*/) {
+//    int randInt = rand();
+//    switch (tsDataType) {
+//        case TSDataType::BOOLEAN: {
+//            *(bool *) dataPtr = (randInt % 2) == 0 ? false : true;
+//            break;
+//        }
+//        case TSDataType::INT32: {
+//            *(int32_t *) dataPtr = randInt;
+//            break;
+//        }
+//        case TSDataType::INT64: {
+//            *(int64_t *) dataPtr = randInt * (int64_t) randInt;
+//            break;
+//        }
+//        case TSDataType::FLOAT: {
+//            *(float *) dataPtr = (float) (randInt / 33.3);
+//            break;
+//        }
+//        case TSDataType::DOUBLE: {
+//            *(double *) dataPtr = (double) (randInt / 11.3);
+//            break;
+//        }
+//        case TSDataType::TEXT: {
+//            string str(workerCfg.textDataLen, 's');
+//            char *p = (char *) str.c_str();
+//            for (uint i = 0; i < str.size(); i = i + 2) {
+//                if ((i % 2) == 0) {
+//                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
+//                } else {
+//                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
+//                }
+//            }
+//            *(string *) dataPtr = str;
+//            break;
+//        }
+//        case TSDataType::NULLTYPE:
+//            break;
+//        default:
+//            return;
+//    }
+//}
+
+
+void OperationBase::genRandData(int sensorIdx, void *dataPtr) {
+    int randInt = rand();
+    switch (workerCfg.fieldInfo4OneRecord[sensorIdx].dataType) {
+        case TSDataType::BOOLEAN: {
+            *(bool *) dataPtr = (randInt % 2) == 0 ? false : true;
+            break;
+        }
+        case TSDataType::INT32: {
+            *(int32_t *) dataPtr = randInt;
+            break;
+        }
+        case TSDataType::INT64: {
+            *(int64_t *) dataPtr = randInt * (int64_t) randInt;
+            break;
+        }
+        case TSDataType::FLOAT: {
+            *(float *) dataPtr = (float) (randInt / 33.3);
+            break;
+        }
+        case TSDataType::DOUBLE: {
+            *(double *) dataPtr = (double) (randInt / 11.3);
+            break;
+        }
+        case TSDataType::TEXT: {
+            int textPrefixSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix.size();
+            int textSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textSize;
+            if (textSize < textPrefixSize) {
+                textSize = textPrefixSize;
+            }
+            string &randStr = *(string *) dataPtr;
+            randStr.reserve(textSize);
+            randStr.assign(workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix);
+            randStr.append(textSize - textPrefixSize, 's');
+            char *p = (char *) randStr.c_str() + textPrefixSize;
+            for (uint i = textPrefixSize; i < randStr.size(); i++) {
+                if ((i % 2) == 0) {
+                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
+                } else {
+                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
+                }
+            }
+            break;
+        }
+        case TSDataType::NULLTYPE:
+            break;
+        default:
+            return;
+    }
+}
+//
+//string OperationBase::genRandDataStr(TSDataType::TSDataType tsDataType) {
+//    int randInt = rand();
+//    switch (tsDataType) {
+//        case TSDataType::BOOLEAN:
+//            return (randInt % 2) == 0 ? string("0") : string("1");
+//        case TSDataType::INT32:
+//            return to_string(randInt);
+//        case TSDataType::INT64:
+//            return to_string(randInt * (long long int) randInt);
+//        case TSDataType::FLOAT:
+//            return to_string((float) (randInt / 33.3));
+//        case TSDataType::DOUBLE:
+//            return to_string((double) (randInt / 31.7));
+//        case TSDataType::TEXT: {
+//            string randStr(workerCfg.textDataLen, 's');
+//            char *p = (char *) randStr.c_str();
+//            for (uint i = 0; i < randStr.size(); i = i + 2) {
+//                if ((i % 2) == 0) {
+//                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
+//                } else {
+//                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
+//                }
+//            }
+//            return randStr;
+//        }
+//        case TSDataType::NULLTYPE:
+//        default:
+//            return string();
+//    }
+//}
+
+string OperationBase::genRandDataStr(int sensorIdx) {
+    int randInt = rand();
+    switch (workerCfg.fieldInfo4OneRecord[sensorIdx].dataType) {
+        case TSDataType::BOOLEAN:
+            return (randInt % 2) == 0 ? string("0") : string("1");
+        case TSDataType::INT32:
+            return to_string(randInt);
+        case TSDataType::INT64:
+            return to_string(randInt * (long long int) randInt);
+        case TSDataType::FLOAT:
+            return to_string((float) (randInt / 33.3));
+        case TSDataType::DOUBLE:
+            return to_string((double) (randInt / 31.7));
+        case TSDataType::TEXT: {
+            int textPrefixSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix.size();
+            int textSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textSize;
+            if (textSize < textPrefixSize ) {
+                textSize = textPrefixSize;
+            }
+            string randStr;
+            randStr.reserve(textSize);
+            randStr.assign(workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix);
+            randStr.append(textSize - textPrefixSize, 's');
+            char *p = (char *) randStr.c_str() + textPrefixSize;
+            for (uint i = textPrefixSize; i < randStr.size(); i++) {
+                if ((i % 2) == 0) {
+                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
+                } else {
+                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
+                }
+            }
+            return randStr;
+        }
+        case TSDataType::NULLTYPE:
+        default:
+            return string();
+    }
+}
+
 
 
 

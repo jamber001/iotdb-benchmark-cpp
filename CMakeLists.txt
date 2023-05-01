@@ -23,7 +23,7 @@ PROJECT(benchmark-cpp VERSION 1.0.0)
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -std=c++11")
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin )
 MESSAGE( " Build executable file: ${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME} \n")
@@ -40,6 +40,7 @@ AUX_SOURCE_DIRECTORY(./src/cpp/common SRC_LIST2)
 ADD_EXECUTABLE(${PROJECT_NAME} ${SRC_LIST} ${SRC_LIST2})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} iotdb_session pthread)
 
+file(COPY conf DESTINATION ./)
 
 # Install
 set(CMAKE_INSTALL_PREFIX "benchmark_cpp")
@@ -50,16 +51,12 @@ install(TARGETS ${PROJECT_NAME}
         PUBLIC_HEADER DESTINATION include)
 install(PROGRAMS src/benchmark-cpp.sh DESTINATION ./)
 install(FILES iotdb_sdk/lib/libiotdb_session.so DESTINATION lib)
-install(FILES conf/main.conf DESTINATION conf)
+install(FILES conf/main.conf conf/record0.temp DESTINATION conf)
 
 # Package
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_SET_DESTDIR ON)
 include(CPack)
-
-
-
-
 
 
 

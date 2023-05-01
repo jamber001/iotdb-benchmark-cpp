@@ -22,11 +22,12 @@
 #include "easyUtility.hpp"
 
 bool InsertTabletOperation::doPreWork() {
-    schemaList4Device.reserve(workerCfg.sensorNum);
-    for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-        string sensorStr = getSensorStr(sensorIdx);
-        int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
-        schemaList4Device.emplace_back(sensorStr, getTsDataType(workerCfg.dataTypeList[typeIdx]));
+    prepareOneDeviceMeasurementsTypes();
+
+    vector<pair<string, TSDataType::TSDataType>> schemaList4Device;
+    schemaList4Device.reserve(workerCfg.fieldInfo4OneRecord.size());
+    for (FieldInfo & fieldInfo : workerCfg.fieldInfo4OneRecord) {
+        schemaList4Device.emplace_back(fieldInfo.sensorName, fieldInfo.dataType);
     }
 
     //== Prepare requestList ===
@@ -48,39 +49,22 @@ bool InsertTabletOperation::doPreWork() {
                 tablet.setTags(tags);
             }
 
-            int randInt = rand();
+            char randVal[16];
+            string randStr;
             for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-                switch (schemaList4Device[sensorIdx].second) {
-                    case TSDataType::BOOLEAN: {
-                        bool randBool = (randInt % 2 == 1) ? true : false;
-                        tablet.addValue(sensorIdx, rowIdx, &randBool);
-                        break;
-                    }
+                TSDataType::TSDataType dataType = schemaList4Device[sensorIdx].second;
+                switch (dataType) {
+                    case TSDataType::BOOLEAN:
                     case TSDataType::INT32:
-                        tablet.addValue(sensorIdx, rowIdx, &randInt);
-                        break;
-                    case TSDataType::INT64: {
-                        int64_t randInt64 = randInt * (int64_t) randInt;
-                        tablet.addValue(sensorIdx, rowIdx, &randInt64);
-                        break;
-                    }
-                    case TSDataType::FLOAT: {
-                        float randFloat = randInt / 33.3;
-                        tablet.addValue(sensorIdx, rowIdx, &randFloat);
-                        break;
-                    }
+                    case TSDataType::INT64:
+                    case TSDataType::FLOAT:
                     case TSDataType::DOUBLE: {
-                        double randDouble = randInt / 13.3;
-                        tablet.addValue(sensorIdx, rowIdx, &randDouble);
+                        genRandData(sensorIdx, &randVal);
+                        tablet.addValue(sensorIdx, rowIdx, &randVal);
                         break;
                     }
                     case TSDataType::TEXT: {
-                        string randStr(workerCfg.textDataLen, 's');
-                        char *p = (char *) randStr.c_str();
-                        for (uint i = 0; i < randStr.size(); i = i + 2) {
-                            *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
-                            *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
-                        }
+                        genRandData(sensorIdx, &randStr);
                         tablet.addValue(sensorIdx, rowIdx, &randStr);
                         break;
                     }

@@ -48,62 +48,24 @@ void InsertRecordsOperation::worker(int threadIdx) {
 }
 
 
-string InsertRecordsOperation::genValueStr(TSDataType::TSDataType tsDataType) {
-    int randInt = rand();
-    switch (tsDataType) {
-        case TSDataType::BOOLEAN:
-            return (randInt % 2) == 0 ? string("0") : string("1");
-        case TSDataType::INT32:
-            return to_string(randInt);
-        case TSDataType::INT64:
-            return to_string(randInt * (long long int) randInt);
-        case TSDataType::FLOAT:
-            return to_string((float) (randInt / 33.3));
-        case TSDataType::DOUBLE:
-            return to_string((double) (randInt / 31.7));
-        case TSDataType::TEXT: {
-            string randStr(workerCfg.textDataLen, 's');
-            char *p = (char *) randStr.c_str();
-            for (uint i = 0; i < randStr.size(); i = i + 2) {
-                *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
-                *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
-            }
-            return randStr;
-        }
-        case TSDataType::NULLTYPE:
-        default:
-            return string();
-    }
-}
 
 bool InsertRecordsOperation::doPreWork() {
-    vector<string> measurementsInOneRecord;
-    vector<TSDataType::TSDataType> typesInOneRecord;
-    measurementsInOneRecord.reserve(workerCfg.sensorNum);
-    typesInOneRecord.reserve(workerCfg.sensorNum);
-    for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-        string sensorStr = getSensorStr(sensorIdx);
-        measurementsInOneRecord.emplace_back(sensorStr);
-        int typeIdx = sensorIdx % workerCfg.dataTypeList.size();
-        TSDataType::TSDataType tsDataType = getTsDataType(workerCfg.dataTypeList[typeIdx]);
-        typesInOneRecord.emplace_back(tsDataType);
-    }
+    prepareOneDeviceMeasurementsTypes();
 
     measurementsList.reserve(workerCfg.batchSize);
     typesList.reserve(workerCfg.batchSize);
-    valuesList.resize(workerCfg.batchSize);
-    valuesList2.resize(workerCfg.batchSize);
+    recordValueList.resize(workerCfg.batchSize);
+    recordValueList2.resize(workerCfg.batchSize);
     for (int recordIdx = 0; recordIdx < workerCfg.batchSize; ++recordIdx) {
-        measurementsList.push_back(measurementsInOneRecord);
-        typesList.push_back(typesInOneRecord);
+        measurementsList.push_back(sensorNames4OneRecord);
+        typesList.push_back(types4OneRecord);
 
-        auto &valuesInOneRecord = valuesList[recordIdx];
-        auto &valuesInOneRecord2 = valuesList2[recordIdx];
+        auto &valuesInOneRecord = recordValueList[recordIdx];
+        auto &valuesInOneRecord2 = recordValueList2[recordIdx];
         valuesInOneRecord.resize(workerCfg.sensorNum);
         valuesInOneRecord2.resize(workerCfg.sensorNum);
         for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-            TSDataType::TSDataType tsDataType = typesInOneRecord[sensorIdx];
-            valuesInOneRecord[sensorIdx] = move(genValueStr(tsDataType));
+            valuesInOneRecord[sensorIdx] = move(genRandDataStr(sensorIdx));
             valuesInOneRecord2[sensorIdx] = (char *) valuesInOneRecord.rbegin()->c_str();
         }
     }
@@ -124,11 +86,10 @@ void InsertRecordsOperation::insertRecordsBatch(shared_ptr<Session> &session, in
     }
 
     if (workerCfg.workMode == 0) {
-        sendInsertRecords(session, deviceIds, timestamps, measurementsList, valuesList);
+        sendInsertRecords(session, deviceIds, timestamps, measurementsList, recordValueList);
     } else {
-        sendInsertRecords2(session, deviceIds, timestamps, measurementsList, typesList, valuesList2);
+        sendInsertRecords2(session, deviceIds, timestamps, measurementsList, typesList, recordValueList2);
     }
-
 }
 
 

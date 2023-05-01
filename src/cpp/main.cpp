@@ -182,9 +182,13 @@ int main(int argc, char* argv[]) {
         printf(" %-15s ==>  ", section.c_str());
         if (taskCfg.extractCfg(section, config)) {
             taskCfgList.push_back(taskCfg);
-            printf("%s\n", "Succ!");
+            if (taskCfg.taskEnable) {
+                printf("%s\n", "Succ!");
+            } else {
+                printf("%s\n", "Disabled!");
+            }
         } else {
-            printf("%s\n", "Disabled!");
+            return -1;
         }
     }
     fflush(stdout);

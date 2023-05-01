@@ -33,7 +33,7 @@ public:
         sgPrefix = "records_";
     };
 
-    bool doPreWork();
+    bool doPreWork() override;
 
     void worker(int threadIdx) override;
 
@@ -51,14 +51,11 @@ private:
                             const vector<vector<TSDataType::TSDataType>> &typesList,
                             const std::vector<std::vector<char *>> &valuesList);
 
-    string genValueStr(TSDataType::TSDataType);
-
 private:
     vector<vector<string>> measurementsList;    //all Sessions use same measurementsList
     vector<vector<TSDataType::TSDataType>> typesList; //all Sessions use same typesList
-    vector<vector<string>> valuesList;         //all Sessions use same valuesList
-    vector<vector<char *>> valuesList2;         //all Sessions use same valuesList
-
+    vector<vector<string>> recordValueList;          //all Sessions use same recordValueList
+    vector<vector<char *>> recordValueList2;         //all Sessions use same recordValueList
 };
 
 

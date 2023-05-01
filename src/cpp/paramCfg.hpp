@@ -24,6 +24,7 @@
 #include <vector>
 #include "easyCfgBase.hpp"
 #include "easyUtility.hpp"
+#include "Session.h"
 
 using namespace std;
 
@@ -36,8 +37,31 @@ struct ServerCfg {
 };
 
 
-struct TaskCfg {
+struct FieldInfo {
+    string sensorName;
+    TSDataType::TSDataType dataType;
+    TSEncoding::TSEncoding encodeType;
+    CompressionType::CompressionType compressionType;
+    int textSize;
+    string textPrefix;
+
+    FieldInfo() {
+        reset();
+    };
+    void reset() {
+        sensorName.clear();
+        dataType = TSDataType::NULLTYPE;
+        encodeType = TSEncoding::PLAIN;
+        compressionType = CompressionType::UNCOMPRESSED;
+        textSize = 0;
+        textPrefix.clear();
+    }
+};
+
+class TaskCfg {
+public:
     string taskName;
+    bool taskEnable;
     string taskType;
 
     int workMode = 0;    //optional parameter
@@ -50,72 +74,39 @@ struct TaskCfg {
     int storageGroupNum;
     int deviceNum;
     int sensorNum;
-    vector<string> dataTypeList;
+    //vector<TSDataType::TSDataType> dataTypeList;
     int textDataLen = 2;     //optional parameter
+    string recordInfoFile;   //optional parameter
+    vector<FieldInfo> fieldInfo4OneRecord;
     int batchSize = 100;
     int64_t startTimestamp;
 
     long long loopNum;
     int loopIntervalMs;
 
+public:
+    bool extractCfg(const string &taskName, EasyCfgBase &config);
+    bool genDataTypeList(const vector<string> &dataTypeStrList);
+    bool genFieldInfo4OneRecordFromFile(const char *fileName);
+    bool genFieldInfo4OneRecord(const vector<string> &dataTypeStrList, int textLen);
+    void printCfg() const;
 
-    bool extractCfg(const string &taskName, EasyCfgBase &config) {
-        bool enable = false;
-        if (!config.getParamBool("TASK_ENABLE", enable, taskName)) {
-            return false;
-        };
-        if (!enable) {
-            return false;
-        }
+    static bool strToDataType(const string &typeStr, TSDataType::TSDataType &dataType);
+    static bool strToEncodingType(const string &encodeTypeStr, TSEncoding::TSEncoding &encodingType);
+    static bool strToCompressionType(const string &compressionTypeStr, CompressionType::CompressionType &compressionType);
 
-        this->taskName = taskName;
-        taskType = config.getParamStr("TASK_TYPE", taskName);
-        workMode = 0;
-        config.getParamInt("WORK_MODE", workMode, taskName);  //optional parameter
-        createSchema = true;
-        config.getParamBool("CREATE_SCHEMA", createSchema, taskName);  //optional parameter
-        timeAlignedEnable = false;
-        config.getParamBool("TIME_ALIGNED_ENABLE", timeAlignedEnable, taskName);  //optional parameter
-        tagsEnable = false;
-        config.getParamBool("TAGS_ENABLE", tagsEnable, taskName);  //optional parameter
+    static bool getDefaultEncodingType(TSDataType::TSDataType dataType, TSEncoding::TSEncoding &encodingType) ;
+    static TSEncoding::TSEncoding getDefaultEncodingType(TSDataType::TSDataType dataType);
+    static bool getDefaultEncodingType(const string &typeStr, TSEncoding::TSEncoding &encodingType) ;
 
-        sessionNum = config.getParamInt("SESSION_NUMBER", taskName);
-        config.getParamLL("SG_TTL", sgTTL, taskName);    //optional parameter
-        storageGroupNum = config.getParamInt("SG_NUMBER", taskName);
-        deviceNum = config.getParamInt("DEVICE_NUMBER", taskName);
-        sensorNum = config.getParamInt("SENSOR_NUMBER", taskName);
-        string sensorDataTypeStr = config.getParamStr("SENSOR_DATA_TYPE", taskName);
-        config.parseValueBunch(sensorDataTypeStr, dataTypeList);
-        if (dataTypeList.size() <= 0) {
-            error_log("Invalid configure %s=%s", "SENSOR_DATA_TYPE", sensorDataTypeStr.c_str());
-            return false;
-        }
-        textDataLen = config.getParamInt("TEXT_DATA_LEN", taskName);
-        batchSize = config.getParamInt("BATCH_SIZE", taskName);
-        if (config.getParamStr("START_TIMESTAMP", taskName) == "NOW" ) {
-            startTimestamp = getTimeUs() / 1000;
-        } else {
-            startTimestamp = config.getParamLL("START_TIMESTAMP", taskName);
-        }
-        loopNum = config.getParamLL("LOOP_NUM", taskName);
-        loopIntervalMs = config.getParamInt("LOOP_INTERVAL_MS", taskName);
+    static bool getDefaultCompressionType(TSDataType::TSDataType dataType, CompressionType::CompressionType &compressionType) ;
+    static CompressionType::CompressionType getDefaultCompressionType(const TSDataType::TSDataType dataType);
+    static bool getDefaultCompressionType(const string &typeStr, CompressionType::CompressionType &compressionType) ;
 
-        return true;
-    }
+private:
+    int parserFieldInfo(string line, FieldInfo &fieldInfo);
+    void lineToItems(const string &line, vector<string> &itemsList);
 
-    void printCfg() const {
-        printf("   taskName=%s\n", taskName.c_str());
-        printf("   taskType=%s\n", taskType.c_str());
-        printf("   timeAlignedEnable=%s\n", timeAlignedEnable ? "True" : "False");
-        printf("   tagsEnable=%s\n", tagsEnable ? "True" : "False");
-        printf("   workMode=%d\n", workMode);
-        printf("   sessionNum=%d\n", sessionNum);
-        printf("   storageGroupNum=%d\n", storageGroupNum);
-        printf("   deviceNum=%d\n", deviceNum);
-        printf("   sensorNum=%d\n", sensorNum);
-        printf("   batchSize=%d\n", batchSize);
-        printf("   loopNum=%lld\n", loopNum);
-    }
 };
 
 #endif //PARAMCFG_HPP
