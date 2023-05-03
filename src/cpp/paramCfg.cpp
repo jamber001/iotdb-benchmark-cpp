@@ -18,6 +18,7 @@
  */
 
 #include <fstream>
+#include <cfloat>
 #include "paramCfg.hpp"
 
 using namespace std;
@@ -87,8 +88,12 @@ bool TaskCfg::extractCfg(const string &taskName, EasyCfgBase &config) {
 }
 
 bool TaskCfg::genFieldInfo4OneRecordFromFile(const char *fileName) {
-    string filePath = "../conf/";
-    filePath += fileName;
+    string exePath;
+    if (!EasyCfgBase::getExePath(exePath)) {
+        error_log("TaskCfg::genFieldInfo4OneRecordFromFile(), can not find exe path.");
+        return false;
+    }
+    string filePath = exePath + "/../conf/" + fileName;
 
     ifstream ifs(filePath, ifstream::in);
 
@@ -175,7 +180,7 @@ void TaskCfg::lineToItems(const string &line, vector<string> &items) {
  *
  * @param line
  * @param fieldInfo
- * @return  1 - have valid fieldInfo, 0 - no fieldInfo, -1 - error
+ * @return  1 - Got valid fieldInfo; 0 - no fieldInfo; -1 - error
  */
 int TaskCfg::parserFieldInfo(string line, FieldInfo &fieldInfo) {
     fieldInfo.reset();
@@ -231,21 +236,168 @@ int TaskCfg::parserFieldInfo(string line, FieldInfo &fieldInfo) {
         }
     }
 
-    //== Set TextSize ==
-    if ((items.size() >= 5) && (items[4] != "NULL")) {
-        fieldInfo.textSize = atoi(items[4].c_str());
-    } else {
-        fieldInfo.textSize = 0;
+    //== set rang interval for INT32/INT64/FLOAT/DOUBLE
+    if ((fieldInfo.dataType == TSDataType::INT32) || (fieldInfo.dataType == TSDataType::INT64) ||
+        (fieldInfo.dataType == TSDataType::FLOAT) || (fieldInfo.dataType == TSDataType::DOUBLE)) {
+        if ((items.size() >= 5) && (items[4] != "NULL")) {
+            if (!parseRangInfo(items[4], fieldInfo)) {
+                error_log("Invalid rang string: %s.", items[4].c_str());
+                return -1;
+            }
+        } else {
+            fieldInfo.dataRangeIsSet = false;
+        }
+        return 1;
     }
 
-    //== Set TextPrefix ==
-    if (items.size() >= 6) {
-        fieldInfo.textPrefix = items[5];
+    //== Get textSize and  textPrefix
+    if (fieldInfo.dataType == TSDataType::TEXT) {
+        //== Set TextSize ==
+        if ((items.size() >= 5) && (items[4] != "NULL")) {
+            fieldInfo.textSize = atoi(items[4].c_str());
+        } else {
+            fieldInfo.textSize = 0;
+        }
+
+        //== Set TextPrefix ==
+        if (items.size() >= 6) {
+            fieldInfo.textPrefix = items[5];
+        }
     }
 
     return 1;
 }
 
+/**
+ *
+ * @param rangStr
+ * @param fieldInfo
+ * @return ture - valid rangStr, false - invalid rangStr or dataType.
+ */
+bool TaskCfg::parseRangInfo(const string &rangStr, FieldInfo &fieldInfo) {
+    fieldInfo.dataRangeIsSet = false;
+
+    if (rangStr.empty()) {
+        return true;
+    }
+
+    if (rangStr.size() < 3) {  //"(,]" is the shortest rangStr
+        return false;
+    }
+
+    switch (rangStr[0]) {
+        case '(':
+            fieldInfo.leftOpenInterval = true;
+            break;
+        case '[':
+            fieldInfo.leftOpenInterval = false;
+            break;
+        default:
+            return false;
+    }
+
+    switch (*rangStr.rbegin()) {
+        case ')':
+            fieldInfo.rightOpenInterval = true;
+            break;
+        case ']':
+            fieldInfo.rightOpenInterval = false;
+            break;
+        default:
+            return false;
+    }
+
+    size_t pos = rangStr.find(',');
+    if (pos == string::npos) {  //If no ","
+        error_log("Rang Str (%s) has no \",\".", rangStr.c_str());
+        return false;
+    }
+
+    try {
+        string leftValueStr = rangStr.substr(1, pos - 1);
+        if (leftValueStr.empty()) {
+            switch (fieldInfo.dataType) {
+                case TSDataType::INT32:
+                    fieldInfo.minInt = INT_MIN;
+                    break;
+                case TSDataType::INT64:
+                    fieldInfo.minInt = LONG_LONG_MIN;
+                    break;
+                case TSDataType::FLOAT:
+                    fieldInfo.minDouble = FLT_MIN;
+                    break;
+                case TSDataType::DOUBLE:
+                    fieldInfo.minDouble = DBL_MIN;
+                    break;
+                default:
+                    return false;
+            }
+        } else {
+            switch (fieldInfo.dataType) {
+                case TSDataType::INT32:
+                case TSDataType::INT64:
+                    fieldInfo.minInt = stoll(leftValueStr) + (fieldInfo.leftOpenInterval ? 1 : 0);
+                    break;
+                case TSDataType::FLOAT:
+                case TSDataType::DOUBLE:
+                    fieldInfo.minDouble = stod(leftValueStr);
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        string rightValueStr = rangStr.substr(pos + 1, rangStr.size() - pos - 2);
+        if (rightValueStr.empty()) {
+            switch (fieldInfo.dataType) {
+                case TSDataType::INT32:
+                    fieldInfo.maxInt = INT_MAX;
+                    break;
+                case TSDataType::INT64:
+                    fieldInfo.maxInt = LONG_LONG_MAX;
+                    break;
+                case TSDataType::FLOAT:
+                    fieldInfo.maxDouble = FLT_MAX;
+                    break;
+                case TSDataType::DOUBLE:
+                    fieldInfo.maxDouble = DBL_MAX;
+                    break;
+                default:
+                    return false;
+            }
+        } else {
+            switch (fieldInfo.dataType) {
+                case TSDataType::INT32:
+                case TSDataType::INT64:
+                    fieldInfo.maxInt = stoll(rightValueStr) - (fieldInfo.rightOpenInterval ? 1 : 0);
+                    break;
+                case TSDataType::FLOAT:
+                case TSDataType::DOUBLE:
+                    fieldInfo.maxDouble = stod(rightValueStr);
+                    break;
+                default:
+                    return false;
+            }
+        }
+    }
+    catch (const exception &ignored) {
+        return false;
+    }
+
+    if ((fieldInfo.dataType == TSDataType::INT32) || (fieldInfo.dataType == TSDataType::INT64)) {
+        if (fieldInfo.minInt > fieldInfo.maxInt) {
+            return false;
+        }
+    }
+    if ((fieldInfo.dataType == TSDataType::FLOAT) || (fieldInfo.dataType == TSDataType::DOUBLE)) {
+        if (fieldInfo.minDouble > fieldInfo.maxDouble) {
+            return false;
+        }
+    }
+
+    fieldInfo.dataRangeIsSet = true;
+    return true;
+}
 
 bool TaskCfg::strToDataType(const string &typeStr, TSDataType::TSDataType &dataType) {
     static unordered_map<string, TSDataType::TSDataType> mapStr2Type = {
@@ -409,4 +561,5 @@ void TaskCfg::printCfg() const {
     printf("   recordInfoFile=%s\n", recordInfoFile.c_str());
     printf("   batchSize=%d\n", batchSize);
     printf("   loopNum=%lld\n", loopNum);
+    printf("   loopIntervalMs=%d\n", loopIntervalMs);
 }

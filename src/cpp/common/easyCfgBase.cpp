@@ -354,7 +354,7 @@ bool EasyCfgBase::getExePath(string &path) {
     sprintf(proc, "/proc/%d/exe", getpid());
     int ret = readlink(proc, buf, sizeof(buf));
     if (ret <= 0) {
-        info_log("EasyCfgBase::getExePath(), readlink error, ret=%d, path=%s.", ret, proc);
+        error_log("EasyCfgBase::getExePath(), readlink error, ret=%d, path=%s.", ret, proc);
         return false;
     }
 
@@ -363,7 +363,7 @@ bool EasyCfgBase::getExePath(string &path) {
 
     size_t pos = path.rfind('/');
     if (string::npos == pos) {
-        info_log("EasyCfgBase::getExePath(), exe path has no '/'. path=%s.", path.c_str());
+        error_log("EasyCfgBase::getExePath(), exe path has no '/'. path=%s.", path.c_str());
         return false;
     }
     path.erase(pos);

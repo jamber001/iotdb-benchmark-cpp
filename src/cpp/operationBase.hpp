@@ -207,9 +207,7 @@ protected:
     StatisticsInfo allStatisticsInfo, newStatisticsInfo;
 
 protected:
-    void genRandData(TSDataType::TSDataType tsDataType, void *dataPtr, int TextSize = 2);
     void genRandData(int sensorIdx, void *dataPtr);
-    string genRandDataStr(TSDataType::TSDataType tsDataType);
     string genRandDataStr(int sensorIdx);
 
 private:

@@ -5,9 +5,16 @@
 # 3) {TextSize} and {TextPrefix} are only valid for TEXT Type.
 # 4) If {TextSize} < sizeof({TextPrefix}), {TextSize} will be ignored.
 
-vol      FLOAT   NULL    NULL  32
-Current  DOUBLE  PLAIN   GZIP
+Wind    INT64   FREQ    NULL  (-2,]
+vol      FLOAT   NULL    NULL  (4,15]
+Current  DOUBLE  PLAIN   GZIP  (0.9,1]
 POWER    INT64
-Wind     INT32   FREQ    NULL  (2,10]
+Wind1    INT32   FREQ    NULL  (2,10]
+Wind2    INT32   FREQ    NULL  [2,10)
+Wind3    INT64   FREQ    NULL  (-25,-20]
+Wind4    INT32   FREQ    NULL  (,1]
+Wind5    INT64   FREQ    NULL  (-2,]
 TEMP     TEXT    NULL    NULL  4
 Note     TEXT    NULL    NULL  200  abcdefgABCDEFG012345_()<>[]{},.:;+-*/\|~!?\@
+
+

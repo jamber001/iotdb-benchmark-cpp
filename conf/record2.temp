@@ -1,0 +1,47 @@
+#SensorName DataType EncodeType CompressType IntegerRang/TextSize TextPrefix
+#Note:
+# 1) DataType: BOOLEAN, INT32, INT64, FLOAT, DOUBLE, TEXT
+# 2) If {Encode} {Compress} {TextSize} is emtpy or "NULL", use default value.
+# 3) {TextSize} and {TextPrefix} are only valid for TEXT Type.
+# 4) If {TextSize} < sizeof({TextPrefix}), {TextSize} will be ignored.
+
+vin TEXT PLAIN NULL 32
+SOC INT32 NULL NULL
+isReissue INT32 NULL NULL
+source TEXT  PLAIN   NULL 4
+bir INT32 NULL NULL
+charging_status INT32 NULL NULL
+engine_status INT32 NULL NULL
+gears_position INT32 NULL NULL
+hwl INT32 NULL NULL
+isLocation INT32 NULL NULL
+latitude INT64 NULL NULL
+longitude INT64 NULL NULL
+hdf BOOLEAN NULL NULL
+hpf BOOLEAN NULL NULL
+toap INT32 NULL NULL
+tobp INT32 NULL NULL
+mxt INT32 NULL NULL
+mxvc INT32 NULL NULL
+mileage INT32 NULL NULL
+mit INT32 NULL NULL
+mivc INT32 NULL NULL
+omxt INT32 NULL NULL
+omxv INT32 NULL NULL
+omit INT32 NULL NULL
+omiv INT32 NULL NULL
+pmxt INT32 NULL NULL
+pmxv INT32 NULL NULL
+pmit INT32 NULL NULL
+pmiv INT32 NULL NULL
+speed INT32 NULL NULL
+total_current INT32 NULL NULL
+total_voltage INT32 NULL NULL
+vehicle_status INT32 NULL NULL
+working_model INT32 NULL NULL
+cspd INT32 NULL NULL
+fc INT32 NULL NULL
+pbpv_number INT32 NULL NULL
+dc_st INT32 NULL NULL
+json TEXT PLAIN NULL 4096
+gb TEXT PLAIN NULL 4096

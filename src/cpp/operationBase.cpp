@@ -19,6 +19,7 @@
 
 #include "operationBase.hpp"
 #include <unistd.h>
+#include <cfloat>
 
 using namespace std;
 
@@ -437,91 +438,70 @@ void OperationBase::mergeStatisticsInfo(StatisticsInfo& allInfo , StatisticsInfo
     }
 }
 
-//
-//
-//void OperationBase::genRandData(TSDataType::TSDataType tsDataType, void *dataPtr, int TextSize /*= 2*/) {
-//    int randInt = rand();
-//    switch (tsDataType) {
-//        case TSDataType::BOOLEAN: {
-//            *(bool *) dataPtr = (randInt % 2) == 0 ? false : true;
-//            break;
-//        }
-//        case TSDataType::INT32: {
-//            *(int32_t *) dataPtr = randInt;
-//            break;
-//        }
-//        case TSDataType::INT64: {
-//            *(int64_t *) dataPtr = randInt * (int64_t) randInt;
-//            break;
-//        }
-//        case TSDataType::FLOAT: {
-//            *(float *) dataPtr = (float) (randInt / 33.3);
-//            break;
-//        }
-//        case TSDataType::DOUBLE: {
-//            *(double *) dataPtr = (double) (randInt / 11.3);
-//            break;
-//        }
-//        case TSDataType::TEXT: {
-//            string str(workerCfg.textDataLen, 's');
-//            char *p = (char *) str.c_str();
-//            for (uint i = 0; i < str.size(); i = i + 2) {
-//                if ((i % 2) == 0) {
-//                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
-//                } else {
-//                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
-//                }
-//            }
-//            *(string *) dataPtr = str;
-//            break;
-//        }
-//        case TSDataType::NULLTYPE:
-//            break;
-//        default:
-//            return;
-//    }
-//}
-
 
 void OperationBase::genRandData(int sensorIdx, void *dataPtr) {
-    int randInt = rand();
-    switch (workerCfg.fieldInfo4OneRecord[sensorIdx].dataType) {
+    static int randInt2 = rand();
+    int randInt1 = rand();
+    FieldInfo &fieldInfo =workerCfg.fieldInfo4OneRecord[sensorIdx];
+    switch (fieldInfo.dataType) {
         case TSDataType::BOOLEAN: {
-            *(bool *) dataPtr = (randInt % 2) == 0 ? false : true;
+            *(bool *) dataPtr = (randInt1 % 2) == 0 ? false : true;
             break;
         }
         case TSDataType::INT32: {
-            *(int32_t *) dataPtr = randInt;
+            if (!fieldInfo.dataRangeIsSet) {
+                *(int32_t *) dataPtr = randInt1 * ((randInt2 % 2) == 0 ? 1 : -1);;
+            } else {
+                *(int32_t *) dataPtr = fieldInfo.minInt + (int32_t) round(
+                        (fieldInfo.maxInt - fieldInfo.minInt) * (double) randInt1 / RAND_MAX);
+            }
             break;
         }
         case TSDataType::INT64: {
-            *(int64_t *) dataPtr = randInt * (int64_t) randInt;
+            static int64_t RAND_MAX_LONG = ((int64_t) RAND_MAX << 32) + (int64_t) RAND_MAX;
+            if (!fieldInfo.dataRangeIsSet) {
+                *(int64_t *) dataPtr =
+                        (((int64_t) randInt2 << 32) + (int64_t) randInt1) * ((randInt2 % 2) == 0 ? 1 : -1);
+            } else {
+                double tmp = (((int64_t) randInt2 << 32) + (int64_t) randInt1) / RAND_MAX_LONG;
+                *(int64_t *) dataPtr = (fieldInfo.minInt - (int64_t) round(fieldInfo.minInt * tmp)) +
+                                       (int64_t) round(fieldInfo.maxInt * tmp);
+            }
             break;
         }
         case TSDataType::FLOAT: {
-            *(float *) dataPtr = (float) (randInt / 33.3);
+            if (!fieldInfo.dataRangeIsSet) {
+                *(float *) dataPtr = ((double) randInt1 / RAND_MAX) * DBL_MAX * ((randInt2 % 2) == 0 ? 1 : -1);
+            } else {
+                *(float *) dataPtr =
+                        fieldInfo.minDouble + ((fieldInfo.maxDouble - fieldInfo.minDouble) * randInt1 / RAND_MAX);
+            }
             break;
         }
         case TSDataType::DOUBLE: {
-            *(double *) dataPtr = (double) (randInt / 11.3);
+            if (!fieldInfo.dataRangeIsSet) {
+                *(double *) dataPtr = ((double) randInt1 / RAND_MAX) * DBL_MAX * ((randInt2 % 2) == 0 ? 1 : -1);
+            } else {
+                *(double *) dataPtr = fieldInfo.minDouble + ((fieldInfo.maxDouble - fieldInfo.minDouble) * randInt1 / RAND_MAX);
+            }
             break;
         }
         case TSDataType::TEXT: {
-            int textPrefixSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix.size();
-            int textSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textSize;
+            int textPrefixSize = fieldInfo.textPrefix.size();
+            int textSize = fieldInfo.textSize;
             if (textSize < textPrefixSize) {
                 textSize = textPrefixSize;
             }
             string &randStr = *(string *) dataPtr;
             randStr.reserve(textSize);
-            randStr.assign(workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix);
+            randStr.assign(fieldInfo.textPrefix);
             randStr.append(textSize - textPrefixSize, 's');
             char *p = (char *) randStr.c_str() + textPrefixSize;
             for (uint i = textPrefixSize; i < randStr.size(); i++) {
                 if ((i % 2) == 0) {
-                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
+                    *p++ = 'a' + (randInt1 & 0x07) + (i & 0x0F);
                 } else {
-                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
+                    *p++ = 'A' + (randInt1 & 0x0F) + (i & 0X07);
                 }
             }
             break;
@@ -531,71 +511,40 @@ void OperationBase::genRandData(int sensorIdx, void *dataPtr) {
         default:
             return;
     }
+    randInt2 = randInt1;
 }
-//
-//string OperationBase::genRandDataStr(TSDataType::TSDataType tsDataType) {
-//    int randInt = rand();
-//    switch (tsDataType) {
-//        case TSDataType::BOOLEAN:
-//            return (randInt % 2) == 0 ? string("0") : string("1");
-//        case TSDataType::INT32:
-//            return to_string(randInt);
-//        case TSDataType::INT64:
-//            return to_string(randInt * (long long int) randInt);
-//        case TSDataType::FLOAT:
-//            return to_string((float) (randInt / 33.3));
-//        case TSDataType::DOUBLE:
-//            return to_string((double) (randInt / 31.7));
-//        case TSDataType::TEXT: {
-//            string randStr(workerCfg.textDataLen, 's');
-//            char *p = (char *) randStr.c_str();
-//            for (uint i = 0; i < randStr.size(); i = i + 2) {
-//                if ((i % 2) == 0) {
-//                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
-//                } else {
-//                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
-//                }
-//            }
-//            return randStr;
-//        }
-//        case TSDataType::NULLTYPE:
-//        default:
-//            return string();
-//    }
-//}
 
 string OperationBase::genRandDataStr(int sensorIdx) {
-    int randInt = rand();
     switch (workerCfg.fieldInfo4OneRecord[sensorIdx].dataType) {
-        case TSDataType::BOOLEAN:
-            return (randInt % 2) == 0 ? string("0") : string("1");
-        case TSDataType::INT32:
-            return to_string(randInt);
-        case TSDataType::INT64:
-            return to_string(randInt * (long long int) randInt);
-        case TSDataType::FLOAT:
-            return to_string((float) (randInt / 33.3));
-        case TSDataType::DOUBLE:
-            return to_string((double) (randInt / 31.7));
+        case TSDataType::BOOLEAN: {
+            bool value;
+            genRandData(sensorIdx, &value);
+            return value ? string("1") : string("0");
+        }
+        case TSDataType::INT32: {
+            int32_t value;
+            genRandData(sensorIdx, &value);
+            return to_string(value);
+        }
+        case TSDataType::INT64: {
+            int64_t value;
+            genRandData(sensorIdx, &value);
+            return to_string(value);
+        }
+        case TSDataType::FLOAT: {
+            float value;
+            genRandData(sensorIdx, &value);
+            return to_string(value);
+        }
+        case TSDataType::DOUBLE: {
+            double value;
+            genRandData(sensorIdx, &value);
+            return to_string(value);
+        }
         case TSDataType::TEXT: {
-            int textPrefixSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix.size();
-            int textSize = workerCfg.fieldInfo4OneRecord[sensorIdx].textSize;
-            if (textSize < textPrefixSize ) {
-                textSize = textPrefixSize;
-            }
-            string randStr;
-            randStr.reserve(textSize);
-            randStr.assign(workerCfg.fieldInfo4OneRecord[sensorIdx].textPrefix);
-            randStr.append(textSize - textPrefixSize, 's');
-            char *p = (char *) randStr.c_str() + textPrefixSize;
-            for (uint i = textPrefixSize; i < randStr.size(); i++) {
-                if ((i % 2) == 0) {
-                    *p++ = 'a' + (randInt & 0x07) + (i & 0x0F);
-                } else {
-                    *p++ = 'A' + (randInt & 0x0F) + (i & 0X07);
-                }
-            }
-            return randStr;
+            string value;
+            genRandData(sensorIdx, &value);
+            return value;
         }
         case TSDataType::NULLTYPE:
         default:

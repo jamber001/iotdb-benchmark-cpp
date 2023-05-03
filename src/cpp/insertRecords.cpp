@@ -62,11 +62,13 @@ bool InsertRecordsOperation::doPreWork() {
 
         auto &valuesInOneRecord = recordValueList[recordIdx];
         auto &valuesInOneRecord2 = recordValueList2[recordIdx];
-        valuesInOneRecord.resize(workerCfg.sensorNum);
-        valuesInOneRecord2.resize(workerCfg.sensorNum);
+        valuesInOneRecord.clear();
+        valuesInOneRecord2.clear();
+        valuesInOneRecord.reserve(workerCfg.sensorNum);
+        valuesInOneRecord2.reserve(workerCfg.sensorNum);
         for (int sensorIdx = 0; sensorIdx < workerCfg.sensorNum; ++sensorIdx) {
-            valuesInOneRecord[sensorIdx] = move(genRandDataStr(sensorIdx));
-            valuesInOneRecord2[sensorIdx] = (char *) valuesInOneRecord.rbegin()->c_str();
+            valuesInOneRecord.emplace_back(move(genRandDataStr(sensorIdx)));
+            valuesInOneRecord2.push_back(getNewDataPtr(sensorIdx));
         }
     }
 
@@ -164,6 +166,51 @@ void InsertRecordsOperation::sendInsertRecords2(shared_ptr<Session> &session,
         return;
     }
 }
+
+char *InsertRecordsOperation::getNewDataPtr(int sensorIdx) {
+    FieldInfo &fieldInfo = workerCfg.fieldInfo4OneRecord[sensorIdx];
+    switch (fieldInfo.dataType) {
+        case TSDataType::BOOLEAN: {
+            bool tmp;
+            genRandData(sensorIdx, &tmp);
+            boolStore.emplace_back(tmp);
+            return (char *) &(*boolStore.rbegin());
+        }
+        case TSDataType::INT32: {
+            int32_t tmp;
+            genRandData(sensorIdx, &tmp);
+            int32Store.emplace_back(tmp);
+            return (char *) &(*int32Store.rbegin());
+        }
+        case TSDataType::INT64: {
+            int64_t tmp;
+            genRandData(sensorIdx, &tmp);
+            int64Store.emplace_back(tmp);
+            return (char *) &(*int64Store.rbegin());
+        }
+        case TSDataType::FLOAT: {
+            float tmp;
+            genRandData(sensorIdx, &tmp);
+            floatStore.emplace_back(tmp);
+            return (char *) &(*floatStore.rbegin());
+        }
+        case TSDataType::DOUBLE: {
+            double tmp;
+            genRandData(sensorIdx, &tmp);
+            doubleStore.emplace_back(tmp);
+            return (char *) &(*doubleStore.rbegin());
+        }
+        case TSDataType::TEXT: {
+            string tmp;
+            genRandData(sensorIdx, &tmp);
+            stringStore.emplace_back(tmp);
+            return (char *) &(*stringStore.rbegin());
+        }
+        case TSDataType::NULLTYPE:
+        default:;
+    }
+    return nullptr;
+};
 
 
 

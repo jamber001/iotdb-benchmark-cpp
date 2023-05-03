@@ -42,6 +42,9 @@ struct FieldInfo {
     TSDataType::TSDataType dataType;
     TSEncoding::TSEncoding encodeType;
     CompressionType::CompressionType compressionType;
+    bool dataRangeIsSet, leftOpenInterval, rightOpenInterval;
+    int64_t minInt, maxInt;  //real integer range is [minInt, maxInt]
+    double minDouble, maxDouble;
     int textSize;
     string textPrefix;
 
@@ -53,6 +56,7 @@ struct FieldInfo {
         dataType = TSDataType::NULLTYPE;
         encodeType = TSEncoding::PLAIN;
         compressionType = CompressionType::UNCOMPRESSED;
+        dataRangeIsSet = false;
         textSize = 0;
         textPrefix.clear();
     }
@@ -103,9 +107,9 @@ public:
     static bool getDefaultCompressionType(const string &dataTypeStr, CompressionType::CompressionType &compressionType) ;
 
 private:
-    int parserFieldInfo(string line, FieldInfo &fieldInfo);
     void lineToItems(const string &line, vector<string> &itemsList);
-
+    int parserFieldInfo(string line, FieldInfo &fieldInfo);
+    bool parseRangInfo(const string &rangStr, FieldInfo &fieldInfo);
 };
 
 #endif //PARAMCFG_HPP

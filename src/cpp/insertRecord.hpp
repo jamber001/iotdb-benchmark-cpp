@@ -45,6 +45,7 @@ private:
                           int64_t timestamps,
                           const vector<string> &measurements,
                           const vector<string> &valuesList);
+
     bool sendInsertRecord2(shared_ptr<Session> &session,
                            const string &deviceId,
                            int64_t timestamps,
@@ -52,9 +53,18 @@ private:
                            const vector<TSDataType::TSDataType> &typesList,
                            const vector<char *> &valuesList);
 
+    char *getNewDataPtr(int sensorIdx);
+
 private:
     vector<vector<string>> recordValueList;       //it is used by all Sessions
     vector<vector<char *>> recordValueList2;      //it is used by all Sessions
+
+    list<bool> boolStore;
+    list<int32_t> int32Store;
+    list<int64_t> int64Store;
+    list<float> floatStore;
+    list<double> doubleStore;
+    list<string> stringStore;
 };
 
 

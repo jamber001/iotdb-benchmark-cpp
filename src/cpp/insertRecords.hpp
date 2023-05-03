@@ -51,11 +51,20 @@ private:
                             const vector<vector<TSDataType::TSDataType>> &typesList,
                             const std::vector<std::vector<char *>> &valuesList);
 
+    char *getNewDataPtr(int sensorIdx);
+
 private:
     vector<vector<string>> measurementsList;    //all Sessions use same measurementsList
     vector<vector<TSDataType::TSDataType>> typesList; //all Sessions use same typesList
     vector<vector<string>> recordValueList;          //all Sessions use same recordValueList
     vector<vector<char *>> recordValueList2;         //all Sessions use same recordValueList
+
+    list<bool> boolStore;
+    list<int32_t> int32Store;
+    list<int64_t> int64Store;
+    list<float> floatStore;
+    list<double> doubleStore;
+    list<string> stringStore;
 };
 
 

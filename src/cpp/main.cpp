@@ -69,7 +69,7 @@ void printCountMatric(vector<StatisticsResult> &resultList) {
     //== print title for Count Matrix
     printf("----------------------------------------------------------Result Matrix--------------------------------------------------------------\n");
     printf("%-16s %-14s %-14s %-14s %-14s %-14s %-14s %-14s %-14s\n", "Task", "SuccOperation", "SuccRecord", "SuccPoint", "FailOperation",
-           "FailRecord", "FailPoint", "Record/s", "Point/s)");
+           "FailRecord", "FailPoint", "Record/s", "Point/s");
 
     for (auto &result: resultList) {
         double intervalSec = (result.endTimeUs - result.beginTimeUs) / 1000000.0;
