@@ -86,17 +86,6 @@ bool TaskCfg::extractCfg(const string &taskName, EasyCfgBase &config) {
     return true;
 }
 
-//bool TaskCfg::genDataTypeList(const vector<string> &dataTypeStrList) {
-//    for (const string &dataTypeStr: dataTypeStrList) {
-//        TSDataType::TSDataType dataType;
-//        if (!strToDataType(dataTypeStr, dataType)) {
-//            return false;
-//        }
-//        dataTypeList.push_back(dataType);
-//    }
-//    return true;
-//}
-
 bool TaskCfg::genFieldInfo4OneRecordFromFile(const char *fileName) {
     string filePath = "../conf/";
     filePath += fileName;
@@ -358,25 +347,13 @@ TSEncoding::TSEncoding TaskCfg::getDefaultEncodingType(TSDataType::TSDataType da
     return TSEncoding::PLAIN;
 }
 
-bool TaskCfg::getDefaultEncodingType(const string &typeStr, TSEncoding::TSEncoding &encodingType) {
-    static unordered_map<string, TSEncoding::TSEncoding> mapStr2Type = {
-            {"BOOLEAN",  TSEncoding::RLE},
-            {"INT32",    TSEncoding::RLE},
-            {"INT64",    TSEncoding::RLE},
-            {"FLOAT",    TSEncoding::GORILLA},
-            {"DOUBLE",   TSEncoding::GORILLA},
-            {"TEXT",     TSEncoding::PLAIN},
-            {"NULLTYPE", TSEncoding::PLAIN},
-    };
-
-    auto itr = mapStr2Type.find (typeStr);
-    if ( itr == mapStr2Type.end() ) {
-        error_log("invalid DataType: %s", typeStr.c_str());
+bool TaskCfg::getDefaultEncodingType(const string &dataTypeStr, TSEncoding::TSEncoding &encodingType) {
+    TSDataType::TSDataType dataType;
+    if (!strToDataType(dataTypeStr, dataType)) {
         return false;
     }
 
-    encodingType = itr->second;
-    return true;
+    return getDefaultEncodingType(dataType, encodingType);
 };
 
 bool TaskCfg::getDefaultCompressionType(const TSDataType::TSDataType dataType, CompressionType::CompressionType &compressionType) {
@@ -409,25 +386,13 @@ CompressionType::CompressionType TaskCfg::getDefaultCompressionType(const TSData
     return CompressionType::UNCOMPRESSED;
 }
 
-bool TaskCfg::getDefaultCompressionType(const string &typeStr, CompressionType::CompressionType &compressionType) {
-    static unordered_map<string, CompressionType::CompressionType> mapStr2Type = {
-            {"BOOLEAN",  CompressionType::SNAPPY},
-            {"INT32",    CompressionType::SNAPPY},
-            {"INT64",    CompressionType::SNAPPY},
-            {"FLOAT",    CompressionType::SNAPPY},
-            {"DOUBLE",   CompressionType::SNAPPY},
-            {"TEXT",     CompressionType::SNAPPY},
-            {"NULLTYPE", CompressionType::SNAPPY},
-    };
-
-    auto itr = mapStr2Type.find (typeStr);
-    if ( itr == mapStr2Type.end() ) {
-        error_log("invalid typeStr=%s", typeStr.c_str());
+bool TaskCfg::getDefaultCompressionType(const string &dataTypeStr, CompressionType::CompressionType &compressionType) {
+    TSDataType::TSDataType dataType;
+    if (!strToDataType(dataTypeStr, dataType)) {
         return false;
     }
 
-    compressionType = itr->second;
-    return true;
+    return getDefaultCompressionType(dataType, compressionType);
 }
 
 

@@ -55,7 +55,7 @@ bool cleanAllSG(Session &session) {
 
 void printTaskStatus(vector<StatisticsResult> &resultList) {
     //== print title for Running time
-    printf("----------------------------------------------------------Task Status--------------------------------------------------------------\n");
+    printf("----------------------------------------------------------Task Status----------------------------------------------------------------\n");
     printf("%-20s %-14s %-20s %-20s\n", "Task", "Status", "Interval(sec)", "RunningTime");
     for (auto &result: resultList) {
         string timeStr;
@@ -67,27 +67,29 @@ void printTaskStatus(vector<StatisticsResult> &resultList) {
 
 void printCountMatric(vector<StatisticsResult> &resultList) {
     //== print title for Count Matrix
-    printf("----------------------------------------------------------Result Matrix------------------------------------------------------------\n");
-    printf("%-20s %-20s %-20s %-20s %-20s %-20s\n", "Task", "SuccOperation", "SuccPoint", "FailOperation",
-           "FailPoint", "Throughput(point/s)");
+    printf("----------------------------------------------------------Result Matrix--------------------------------------------------------------\n");
+    printf("%-16s %-14s %-14s %-14s %-14s %-14s %-14s %-14s %-14s\n", "Task", "SuccOperation", "SuccRecord", "SuccPoint", "FailOperation",
+           "FailRecord", "FailPoint", "Record/s", "Point/s)");
 
     for (auto &result: resultList) {
         double intervalSec = (result.endTimeUs - result.beginTimeUs) / 1000000.0;
-        float pps;
+        float rps, pps;
         if (intervalSec < 0.00001) {
+            rps = 0.0;
             pps = 0.0;
         } else {
+            rps = result.succRecordCount / intervalSec;
             pps = result.succInsertPointCount / intervalSec;
         }
-        printf("%-20s %-20llu %-20llu %-20llu %-20llu %-20.2f\n", result.opName.c_str(), result.succOperationCount,
-               result.succInsertPointCount, result.failOperationCount, result.failInsertPointCount, pps);
+        printf("%-16s %-14llu %-14llu %-14llu %-14llu %-14llu %-14llu %-14.2f %-14.2f\n", result.opName.c_str(), result.succOperationCount, result.succRecordCount,
+               result.succInsertPointCount, result.failOperationCount, result.failRecordCount, result.failInsertPointCount, rps, pps);
     }
 }
 
 
 void printLatencyMatric(vector<StatisticsResult> &resultList) {
     //== print title for Latency Matrix
-    printf("----------------------------------------------------------Latency (ms) Matrix------------------------------------------------------\n");
+    printf("----------------------------------------------------------Latency (ms) Matrix--------------------------------------------------------\n");
     printf("%-16s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-18s\n", "Task", "AVG", "MIN", "P10",
            "P25", "MEDIAN", "P75", "P90", "P95", "P99", "P999", "MAX", "SLOWEST_THREAD");
 

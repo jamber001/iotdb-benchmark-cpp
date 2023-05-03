@@ -1,13 +1,13 @@
-#SensorName DataType EncodeType CompressType TextSize TextPrefix
+#SensorName DataType EncodeType CompressType IntegerRang/TextSize TextPrefix
 #Note:
 # 1) DataType: BOOLEAN, INT32, INT64, FLOAT, DOUBLE, TEXT
 # 2) If {Encode} {Compress} {TextSize} is emtpy or "NULL", use default value.
 # 3) {TextSize} and {TextPrefix} are only valid for TEXT Type.
 # 4) If {TextSize} < sizeof({TextPrefix}), {TextSize} will be ignored.
 
-vol     FLOAT  NULL     NULL 32
-Current DOUBLE PLAIN    GZIP 
-POWER   INT64
-Wind    INT32  FREQ
-TEMP    TEXT   NULL     NULL 4
-Note    TEXT   NULL     NULL 200 abcdefgABCDEFG012345_()<>[]{},.:;+-*/\|~!?\@
+vol      FLOAT   NULL    NULL  32
+Current  DOUBLE  PLAIN   GZIP
+POWER    INT64
+Wind     INT32   FREQ    NULL  (2,10]
+TEMP     TEXT    NULL    NULL  4
+Note     TEXT    NULL    NULL  200  abcdefgABCDEFG012345_()<>[]{},.:;+-*/\|~!?\@

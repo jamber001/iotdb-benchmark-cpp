@@ -60,6 +60,8 @@ public:
         endTimeUs = 0;
         succOperationCount = 0;
         failOperationCount = 0;
+        succRecordCount = 0;
+        failRecordCount = 0;
         succInsertPointCount = 0;
         failInsertPointCount = 0;
 
@@ -77,6 +79,8 @@ public:
 
     unsigned long long succOperationCount{0};
     unsigned long long failOperationCount{0};
+    unsigned long long succRecordCount{0};
+    unsigned long long failRecordCount{0};
     unsigned long long succInsertPointCount{0};
     unsigned long long failInsertPointCount{0};
 

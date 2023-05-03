@@ -63,44 +63,55 @@ vi ./conf/main.conf                         #change the configuration
 **The example of running result:**
 
 ```
-$./benchmark-cpp.sh 
+$ vi conf/main.conf        # Change configuration file
+$ vi conf/record0.temp     # If need, change the template of record.
+$ ./benchmark-cpp.sh       # Run benchmak tool
 
 == Read base Configuration ==
  Server Address: 127.0.0.1:6667
 
 == Read Worker Configuration ==
- TABLET_TASK_1   ==>  Succ!
- TABLETS_TASK_1  ==>  Disable!
- RECORDS_TASK_1  ==>  Disable!
- RECORD_TASK_1   ==>  Disable!
+ tablet_task_1   ==>  Succ!
+ tablets_task_1  ==>  Disabled!
+ records_task_1  ==>  Disabled!
+ record_task_1   ==>  Disabled!
 
-== Clean all SG ==
- Finished ... (0.065s) 
+== Clean test related SG ==
+ Finished ... (0.363s) 
 
 == Create sessions ==
- InsertTablets : create 5 sessions ...  (0.003s) 
+ tablet_task_1 : create 5 sessions ...  (0.002s) 
 
 == Create schema ==
- InsertTablets : create schema ...  (0.026s) 
+ tablet_task_1 : create schema ...  (0.011s) 
 
 == Start all tasks ==
- InsertTablets : Begin to insert data ... (2022-09-23 15:43:11)
-   taskName=TABLET_TASK_1
+ tablet_task_1 : Begin to insert data ... (2023-04-03 14:17:02)
+   taskName=tablet_task_1
    taskType=TABLET
+   timeAlignedEnable=True
+   tagsEnable=True
    workMode=0
    sessionNum=5
    storageGroupNum=5
    deviceNum=1
-   sensorNum=20
+   sensorNum=6
+   recordInfoFile=record0.temp
    batchSize=100
-   loopNum=100000
+   loopNum=50
 
->>> InsertTablets: Finish ...  (29.301s) 
+>>> Finish Task: tablet_task_1  ... (0.121s) 
+
+>>> Summary for ALL (2023.04.03 14:17:04.783) 
+----------------------------------------------------------Task Status--------------------------------------------------------------
+Task                 Status         Interval(sec)        RunningTime         
+tablet_task_1        Finished       0.121                [2023.04.03 14:17:02.781 - 2023.04.03 14:17:02.902]
 ----------------------------------------------------------Result Matrix------------------------------------------------------------
-Operation            SuccOperation        SuccPoint            failOperation        failPoint            throughput(point/s) 
-InsertTablets        500000               1000000000           0                    0                    34128590.93         
+Task            SuccOperation   SuccRecord      SuccPoint       FailOperation   FailRecord      FailPoint       Record/s        Point/s)       
+tablet_task_1   250             25000           150000          0               0               0               207240.14       1243440.88     
 ----------------------------------------------------------Latency (ms) Matrix------------------------------------------------------
-Operation        AVG      MIN      P10      P25      MEDIAN   P75      P90      P95      P99      P999     MAX      SLOWEST_THREAD    
-InsertTablets    0.29     0.15     0.16     0.18     0.23     0.36     0.43     0.49     0.78     1.10     88.30    999.99    
+Task             AVG      MIN      P10      P25      MEDIAN   P75      P90      P95      P99      P999     MAX      SLOWEST_THREAD    
+tablet_task_1    0.29     0.13     0.14     0.15     0.16     0.21     0.30     0.83     3.39     3.49     3.49     0.00
+                   
 ```
 

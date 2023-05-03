@@ -340,7 +340,9 @@ void OperationBase::genStatisticsResult(StatisticsResult &result, const Statisti
     }
 
     result.succOperationCount = statisticsInfo.succOperationCount;
-    result.succOperationCount = statisticsInfo.succOperationCount;
+    result.failOperationCount = statisticsInfo.failOperationCount;
+    result.succRecordCount = statisticsInfo.succInsertPointCount / workerCfg.sensorNum;
+    result.failRecordCount = statisticsInfo.failInsertPointCount / workerCfg.sensorNum;
     result.succInsertPointCount = statisticsInfo.succInsertPointCount;
     result.failInsertPointCount = statisticsInfo.failInsertPointCount;
 

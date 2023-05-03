@@ -86,7 +86,6 @@ public:
 
 public:
     bool extractCfg(const string &taskName, EasyCfgBase &config);
-    bool genDataTypeList(const vector<string> &dataTypeStrList);
     bool genFieldInfo4OneRecordFromFile(const char *fileName);
     bool genFieldInfo4OneRecord(const vector<string> &dataTypeStrList, int textLen);
     void printCfg() const;
@@ -97,11 +96,11 @@ public:
 
     static bool getDefaultEncodingType(TSDataType::TSDataType dataType, TSEncoding::TSEncoding &encodingType) ;
     static TSEncoding::TSEncoding getDefaultEncodingType(TSDataType::TSDataType dataType);
-    static bool getDefaultEncodingType(const string &typeStr, TSEncoding::TSEncoding &encodingType) ;
+    static bool getDefaultEncodingType(const string &dataTypeStr, TSEncoding::TSEncoding &encodingType) ;
 
     static bool getDefaultCompressionType(TSDataType::TSDataType dataType, CompressionType::CompressionType &compressionType) ;
     static CompressionType::CompressionType getDefaultCompressionType(const TSDataType::TSDataType dataType);
-    static bool getDefaultCompressionType(const string &typeStr, CompressionType::CompressionType &compressionType) ;
+    static bool getDefaultCompressionType(const string &dataTypeStr, CompressionType::CompressionType &compressionType) ;
 
 private:
     int parserFieldInfo(string line, FieldInfo &fieldInfo);
