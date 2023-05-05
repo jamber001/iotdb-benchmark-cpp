@@ -67,7 +67,7 @@ bool InsertTabletsOperation::doPreWork() {
                     tags[i]["tag1"] = devicePath + "tv1";
                     tags[i]["tag2"] = devicePath + "tv2";
                 }
-                tablets.rbegin()->setTags(tags);
+                //tablets.rbegin()->setTags(tags);
             }
             tablets.rbegin()->setAligned(workerCfg.timeAlignedEnable);
             tabletMap[devicePath] = &tablets[deviceIdx];

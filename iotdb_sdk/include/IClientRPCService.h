@@ -22,6 +22,13 @@
 class IClientRPCServiceIf {
  public:
   virtual ~IClientRPCServiceIf() {}
+  virtual void executeQueryStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req) = 0;
+  virtual void executeUpdateStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req) = 0;
+  virtual void executeStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req) = 0;
+  virtual void executeRawDataQueryV2(TSExecuteStatementResp& _return, const TSRawDataQueryReq& req) = 0;
+  virtual void executeLastDataQueryV2(TSExecuteStatementResp& _return, const TSLastDataQueryReq& req) = 0;
+  virtual void executeAggregationQueryV2(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req) = 0;
+  virtual void fetchResultsV2(TSFetchResultsResp& _return, const TSFetchResultsReq& req) = 0;
   virtual void openSession(TSOpenSessionResp& _return, const TSOpenSessionReq& req) = 0;
   virtual void closeSession( ::TSStatus& _return, const TSCloseSessionReq& req) = 0;
   virtual void executeStatement(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req) = 0;
@@ -59,17 +66,21 @@ class IClientRPCServiceIf {
   virtual void deleteData( ::TSStatus& _return, const TSDeleteDataReq& req) = 0;
   virtual void executeRawDataQuery(TSExecuteStatementResp& _return, const TSRawDataQueryReq& req) = 0;
   virtual void executeLastDataQuery(TSExecuteStatementResp& _return, const TSLastDataQueryReq& req) = 0;
+  virtual void executeAggregationQuery(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req) = 0;
   virtual int64_t requestStatementId(const int64_t sessionId) = 0;
   virtual void createSchemaTemplate( ::TSStatus& _return, const TSCreateSchemaTemplateReq& req) = 0;
   virtual void appendSchemaTemplate( ::TSStatus& _return, const TSAppendSchemaTemplateReq& req) = 0;
   virtual void pruneSchemaTemplate( ::TSStatus& _return, const TSPruneSchemaTemplateReq& req) = 0;
   virtual void querySchemaTemplate(TSQueryTemplateResp& _return, const TSQueryTemplateReq& req) = 0;
   virtual void setSchemaTemplate( ::TSStatus& _return, const TSSetSchemaTemplateReq& req) = 0;
-  virtual void transferPhysicalPlan( ::TSStatus& _return, const TSPhysicalPlanReq& req) = 0;
-  virtual void probe( ::TSStatus& _return) = 0;
-  virtual void getNodeStatus(TSNodeStatusResp& _return, const TSNodeStatusReq& req) = 0;
   virtual void unsetSchemaTemplate( ::TSStatus& _return, const TSUnsetSchemaTemplateReq& req) = 0;
   virtual void dropSchemaTemplate( ::TSStatus& _return, const TSDropSchemaTemplateReq& req) = 0;
+  virtual void createTimeseriesOfSchemaTemplate( ::TSStatus& _return, const TCreateTimeseriesOfSchemaTemplateReq& req) = 0;
+  virtual void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info) = 0;
+  virtual void sendPipeData( ::TSStatus& _return, const std::string& buff) = 0;
+  virtual void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff) = 0;
+  virtual void getBackupConfiguration(TSBackupConfigurationResp& _return) = 0;
+  virtual void fetchAllConnectionsInfo(TSConnectionInfoResp& _return) = 0;
 };
 
 class IClientRPCServiceIfFactory {
@@ -99,6 +110,27 @@ class IClientRPCServiceIfSingletonFactory : virtual public IClientRPCServiceIfFa
 class IClientRPCServiceNull : virtual public IClientRPCServiceIf {
  public:
   virtual ~IClientRPCServiceNull() {}
+  void executeQueryStatementV2(TSExecuteStatementResp& /* _return */, const TSExecuteStatementReq& /* req */) {
+    return;
+  }
+  void executeUpdateStatementV2(TSExecuteStatementResp& /* _return */, const TSExecuteStatementReq& /* req */) {
+    return;
+  }
+  void executeStatementV2(TSExecuteStatementResp& /* _return */, const TSExecuteStatementReq& /* req */) {
+    return;
+  }
+  void executeRawDataQueryV2(TSExecuteStatementResp& /* _return */, const TSRawDataQueryReq& /* req */) {
+    return;
+  }
+  void executeLastDataQueryV2(TSExecuteStatementResp& /* _return */, const TSLastDataQueryReq& /* req */) {
+    return;
+  }
+  void executeAggregationQueryV2(TSExecuteStatementResp& /* _return */, const TSAggregationQueryReq& /* req */) {
+    return;
+  }
+  void fetchResultsV2(TSFetchResultsResp& /* _return */, const TSFetchResultsReq& /* req */) {
+    return;
+  }
   void openSession(TSOpenSessionResp& /* _return */, const TSOpenSessionReq& /* req */) {
     return;
   }
@@ -210,6 +242,9 @@ class IClientRPCServiceNull : virtual public IClientRPCServiceIf {
   void executeLastDataQuery(TSExecuteStatementResp& /* _return */, const TSLastDataQueryReq& /* req */) {
     return;
   }
+  void executeAggregationQuery(TSExecuteStatementResp& /* _return */, const TSAggregationQueryReq& /* req */) {
+    return;
+  }
   int64_t requestStatementId(const int64_t /* sessionId */) {
     int64_t _return = 0;
     return _return;
@@ -229,21 +264,758 @@ class IClientRPCServiceNull : virtual public IClientRPCServiceIf {
   void setSchemaTemplate( ::TSStatus& /* _return */, const TSSetSchemaTemplateReq& /* req */) {
     return;
   }
-  void transferPhysicalPlan( ::TSStatus& /* _return */, const TSPhysicalPlanReq& /* req */) {
-    return;
-  }
-  void probe( ::TSStatus& /* _return */) {
-    return;
-  }
-  void getNodeStatus(TSNodeStatusResp& /* _return */, const TSNodeStatusReq& /* req */) {
-    return;
-  }
   void unsetSchemaTemplate( ::TSStatus& /* _return */, const TSUnsetSchemaTemplateReq& /* req */) {
     return;
   }
   void dropSchemaTemplate( ::TSStatus& /* _return */, const TSDropSchemaTemplateReq& /* req */) {
     return;
   }
+  void createTimeseriesOfSchemaTemplate( ::TSStatus& /* _return */, const TCreateTimeseriesOfSchemaTemplateReq& /* req */) {
+    return;
+  }
+  void handshake( ::TSStatus& /* _return */, const TSyncIdentityInfo& /* info */) {
+    return;
+  }
+  void sendPipeData( ::TSStatus& /* _return */, const std::string& /* buff */) {
+    return;
+  }
+  void sendFile( ::TSStatus& /* _return */, const TSyncTransportMetaInfo& /* metaInfo */, const std::string& /* buff */) {
+    return;
+  }
+  void getBackupConfiguration(TSBackupConfigurationResp& /* _return */) {
+    return;
+  }
+  void fetchAllConnectionsInfo(TSConnectionInfoResp& /* _return */) {
+    return;
+  }
+};
+
+typedef struct _IClientRPCService_executeQueryStatementV2_args__isset {
+  _IClientRPCService_executeQueryStatementV2_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_executeQueryStatementV2_args__isset;
+
+class IClientRPCService_executeQueryStatementV2_args {
+ public:
+
+  IClientRPCService_executeQueryStatementV2_args(const IClientRPCService_executeQueryStatementV2_args&);
+  IClientRPCService_executeQueryStatementV2_args& operator=(const IClientRPCService_executeQueryStatementV2_args&);
+  IClientRPCService_executeQueryStatementV2_args() {
+  }
+
+  virtual ~IClientRPCService_executeQueryStatementV2_args() noexcept;
+  TSExecuteStatementReq req;
+
+  _IClientRPCService_executeQueryStatementV2_args__isset __isset;
+
+  void __set_req(const TSExecuteStatementReq& val);
+
+  bool operator == (const IClientRPCService_executeQueryStatementV2_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeQueryStatementV2_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeQueryStatementV2_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_executeQueryStatementV2_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_executeQueryStatementV2_pargs() noexcept;
+  const TSExecuteStatementReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeQueryStatementV2_result__isset {
+  _IClientRPCService_executeQueryStatementV2_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeQueryStatementV2_result__isset;
+
+class IClientRPCService_executeQueryStatementV2_result {
+ public:
+
+  IClientRPCService_executeQueryStatementV2_result(const IClientRPCService_executeQueryStatementV2_result&);
+  IClientRPCService_executeQueryStatementV2_result& operator=(const IClientRPCService_executeQueryStatementV2_result&);
+  IClientRPCService_executeQueryStatementV2_result() {
+  }
+
+  virtual ~IClientRPCService_executeQueryStatementV2_result() noexcept;
+  TSExecuteStatementResp success;
+
+  _IClientRPCService_executeQueryStatementV2_result__isset __isset;
+
+  void __set_success(const TSExecuteStatementResp& val);
+
+  bool operator == (const IClientRPCService_executeQueryStatementV2_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeQueryStatementV2_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeQueryStatementV2_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeQueryStatementV2_presult__isset {
+  _IClientRPCService_executeQueryStatementV2_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeQueryStatementV2_presult__isset;
+
+class IClientRPCService_executeQueryStatementV2_presult {
+ public:
+
+
+  virtual ~IClientRPCService_executeQueryStatementV2_presult() noexcept;
+  TSExecuteStatementResp* success;
+
+  _IClientRPCService_executeQueryStatementV2_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_executeUpdateStatementV2_args__isset {
+  _IClientRPCService_executeUpdateStatementV2_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_executeUpdateStatementV2_args__isset;
+
+class IClientRPCService_executeUpdateStatementV2_args {
+ public:
+
+  IClientRPCService_executeUpdateStatementV2_args(const IClientRPCService_executeUpdateStatementV2_args&);
+  IClientRPCService_executeUpdateStatementV2_args& operator=(const IClientRPCService_executeUpdateStatementV2_args&);
+  IClientRPCService_executeUpdateStatementV2_args() {
+  }
+
+  virtual ~IClientRPCService_executeUpdateStatementV2_args() noexcept;
+  TSExecuteStatementReq req;
+
+  _IClientRPCService_executeUpdateStatementV2_args__isset __isset;
+
+  void __set_req(const TSExecuteStatementReq& val);
+
+  bool operator == (const IClientRPCService_executeUpdateStatementV2_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeUpdateStatementV2_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeUpdateStatementV2_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_executeUpdateStatementV2_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_executeUpdateStatementV2_pargs() noexcept;
+  const TSExecuteStatementReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeUpdateStatementV2_result__isset {
+  _IClientRPCService_executeUpdateStatementV2_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeUpdateStatementV2_result__isset;
+
+class IClientRPCService_executeUpdateStatementV2_result {
+ public:
+
+  IClientRPCService_executeUpdateStatementV2_result(const IClientRPCService_executeUpdateStatementV2_result&);
+  IClientRPCService_executeUpdateStatementV2_result& operator=(const IClientRPCService_executeUpdateStatementV2_result&);
+  IClientRPCService_executeUpdateStatementV2_result() {
+  }
+
+  virtual ~IClientRPCService_executeUpdateStatementV2_result() noexcept;
+  TSExecuteStatementResp success;
+
+  _IClientRPCService_executeUpdateStatementV2_result__isset __isset;
+
+  void __set_success(const TSExecuteStatementResp& val);
+
+  bool operator == (const IClientRPCService_executeUpdateStatementV2_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeUpdateStatementV2_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeUpdateStatementV2_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeUpdateStatementV2_presult__isset {
+  _IClientRPCService_executeUpdateStatementV2_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeUpdateStatementV2_presult__isset;
+
+class IClientRPCService_executeUpdateStatementV2_presult {
+ public:
+
+
+  virtual ~IClientRPCService_executeUpdateStatementV2_presult() noexcept;
+  TSExecuteStatementResp* success;
+
+  _IClientRPCService_executeUpdateStatementV2_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_executeStatementV2_args__isset {
+  _IClientRPCService_executeStatementV2_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_executeStatementV2_args__isset;
+
+class IClientRPCService_executeStatementV2_args {
+ public:
+
+  IClientRPCService_executeStatementV2_args(const IClientRPCService_executeStatementV2_args&);
+  IClientRPCService_executeStatementV2_args& operator=(const IClientRPCService_executeStatementV2_args&);
+  IClientRPCService_executeStatementV2_args() {
+  }
+
+  virtual ~IClientRPCService_executeStatementV2_args() noexcept;
+  TSExecuteStatementReq req;
+
+  _IClientRPCService_executeStatementV2_args__isset __isset;
+
+  void __set_req(const TSExecuteStatementReq& val);
+
+  bool operator == (const IClientRPCService_executeStatementV2_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeStatementV2_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeStatementV2_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_executeStatementV2_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_executeStatementV2_pargs() noexcept;
+  const TSExecuteStatementReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeStatementV2_result__isset {
+  _IClientRPCService_executeStatementV2_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeStatementV2_result__isset;
+
+class IClientRPCService_executeStatementV2_result {
+ public:
+
+  IClientRPCService_executeStatementV2_result(const IClientRPCService_executeStatementV2_result&);
+  IClientRPCService_executeStatementV2_result& operator=(const IClientRPCService_executeStatementV2_result&);
+  IClientRPCService_executeStatementV2_result() {
+  }
+
+  virtual ~IClientRPCService_executeStatementV2_result() noexcept;
+  TSExecuteStatementResp success;
+
+  _IClientRPCService_executeStatementV2_result__isset __isset;
+
+  void __set_success(const TSExecuteStatementResp& val);
+
+  bool operator == (const IClientRPCService_executeStatementV2_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeStatementV2_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeStatementV2_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeStatementV2_presult__isset {
+  _IClientRPCService_executeStatementV2_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeStatementV2_presult__isset;
+
+class IClientRPCService_executeStatementV2_presult {
+ public:
+
+
+  virtual ~IClientRPCService_executeStatementV2_presult() noexcept;
+  TSExecuteStatementResp* success;
+
+  _IClientRPCService_executeStatementV2_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_executeRawDataQueryV2_args__isset {
+  _IClientRPCService_executeRawDataQueryV2_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_executeRawDataQueryV2_args__isset;
+
+class IClientRPCService_executeRawDataQueryV2_args {
+ public:
+
+  IClientRPCService_executeRawDataQueryV2_args(const IClientRPCService_executeRawDataQueryV2_args&);
+  IClientRPCService_executeRawDataQueryV2_args& operator=(const IClientRPCService_executeRawDataQueryV2_args&);
+  IClientRPCService_executeRawDataQueryV2_args() {
+  }
+
+  virtual ~IClientRPCService_executeRawDataQueryV2_args() noexcept;
+  TSRawDataQueryReq req;
+
+  _IClientRPCService_executeRawDataQueryV2_args__isset __isset;
+
+  void __set_req(const TSRawDataQueryReq& val);
+
+  bool operator == (const IClientRPCService_executeRawDataQueryV2_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeRawDataQueryV2_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeRawDataQueryV2_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_executeRawDataQueryV2_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_executeRawDataQueryV2_pargs() noexcept;
+  const TSRawDataQueryReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeRawDataQueryV2_result__isset {
+  _IClientRPCService_executeRawDataQueryV2_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeRawDataQueryV2_result__isset;
+
+class IClientRPCService_executeRawDataQueryV2_result {
+ public:
+
+  IClientRPCService_executeRawDataQueryV2_result(const IClientRPCService_executeRawDataQueryV2_result&);
+  IClientRPCService_executeRawDataQueryV2_result& operator=(const IClientRPCService_executeRawDataQueryV2_result&);
+  IClientRPCService_executeRawDataQueryV2_result() {
+  }
+
+  virtual ~IClientRPCService_executeRawDataQueryV2_result() noexcept;
+  TSExecuteStatementResp success;
+
+  _IClientRPCService_executeRawDataQueryV2_result__isset __isset;
+
+  void __set_success(const TSExecuteStatementResp& val);
+
+  bool operator == (const IClientRPCService_executeRawDataQueryV2_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeRawDataQueryV2_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeRawDataQueryV2_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeRawDataQueryV2_presult__isset {
+  _IClientRPCService_executeRawDataQueryV2_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeRawDataQueryV2_presult__isset;
+
+class IClientRPCService_executeRawDataQueryV2_presult {
+ public:
+
+
+  virtual ~IClientRPCService_executeRawDataQueryV2_presult() noexcept;
+  TSExecuteStatementResp* success;
+
+  _IClientRPCService_executeRawDataQueryV2_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_executeLastDataQueryV2_args__isset {
+  _IClientRPCService_executeLastDataQueryV2_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_executeLastDataQueryV2_args__isset;
+
+class IClientRPCService_executeLastDataQueryV2_args {
+ public:
+
+  IClientRPCService_executeLastDataQueryV2_args(const IClientRPCService_executeLastDataQueryV2_args&);
+  IClientRPCService_executeLastDataQueryV2_args& operator=(const IClientRPCService_executeLastDataQueryV2_args&);
+  IClientRPCService_executeLastDataQueryV2_args() {
+  }
+
+  virtual ~IClientRPCService_executeLastDataQueryV2_args() noexcept;
+  TSLastDataQueryReq req;
+
+  _IClientRPCService_executeLastDataQueryV2_args__isset __isset;
+
+  void __set_req(const TSLastDataQueryReq& val);
+
+  bool operator == (const IClientRPCService_executeLastDataQueryV2_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeLastDataQueryV2_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeLastDataQueryV2_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_executeLastDataQueryV2_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_executeLastDataQueryV2_pargs() noexcept;
+  const TSLastDataQueryReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeLastDataQueryV2_result__isset {
+  _IClientRPCService_executeLastDataQueryV2_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeLastDataQueryV2_result__isset;
+
+class IClientRPCService_executeLastDataQueryV2_result {
+ public:
+
+  IClientRPCService_executeLastDataQueryV2_result(const IClientRPCService_executeLastDataQueryV2_result&);
+  IClientRPCService_executeLastDataQueryV2_result& operator=(const IClientRPCService_executeLastDataQueryV2_result&);
+  IClientRPCService_executeLastDataQueryV2_result() {
+  }
+
+  virtual ~IClientRPCService_executeLastDataQueryV2_result() noexcept;
+  TSExecuteStatementResp success;
+
+  _IClientRPCService_executeLastDataQueryV2_result__isset __isset;
+
+  void __set_success(const TSExecuteStatementResp& val);
+
+  bool operator == (const IClientRPCService_executeLastDataQueryV2_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeLastDataQueryV2_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeLastDataQueryV2_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeLastDataQueryV2_presult__isset {
+  _IClientRPCService_executeLastDataQueryV2_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeLastDataQueryV2_presult__isset;
+
+class IClientRPCService_executeLastDataQueryV2_presult {
+ public:
+
+
+  virtual ~IClientRPCService_executeLastDataQueryV2_presult() noexcept;
+  TSExecuteStatementResp* success;
+
+  _IClientRPCService_executeLastDataQueryV2_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_executeAggregationQueryV2_args__isset {
+  _IClientRPCService_executeAggregationQueryV2_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_executeAggregationQueryV2_args__isset;
+
+class IClientRPCService_executeAggregationQueryV2_args {
+ public:
+
+  IClientRPCService_executeAggregationQueryV2_args(const IClientRPCService_executeAggregationQueryV2_args&);
+  IClientRPCService_executeAggregationQueryV2_args& operator=(const IClientRPCService_executeAggregationQueryV2_args&);
+  IClientRPCService_executeAggregationQueryV2_args() {
+  }
+
+  virtual ~IClientRPCService_executeAggregationQueryV2_args() noexcept;
+  TSAggregationQueryReq req;
+
+  _IClientRPCService_executeAggregationQueryV2_args__isset __isset;
+
+  void __set_req(const TSAggregationQueryReq& val);
+
+  bool operator == (const IClientRPCService_executeAggregationQueryV2_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeAggregationQueryV2_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeAggregationQueryV2_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_executeAggregationQueryV2_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_executeAggregationQueryV2_pargs() noexcept;
+  const TSAggregationQueryReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeAggregationQueryV2_result__isset {
+  _IClientRPCService_executeAggregationQueryV2_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeAggregationQueryV2_result__isset;
+
+class IClientRPCService_executeAggregationQueryV2_result {
+ public:
+
+  IClientRPCService_executeAggregationQueryV2_result(const IClientRPCService_executeAggregationQueryV2_result&);
+  IClientRPCService_executeAggregationQueryV2_result& operator=(const IClientRPCService_executeAggregationQueryV2_result&);
+  IClientRPCService_executeAggregationQueryV2_result() {
+  }
+
+  virtual ~IClientRPCService_executeAggregationQueryV2_result() noexcept;
+  TSExecuteStatementResp success;
+
+  _IClientRPCService_executeAggregationQueryV2_result__isset __isset;
+
+  void __set_success(const TSExecuteStatementResp& val);
+
+  bool operator == (const IClientRPCService_executeAggregationQueryV2_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeAggregationQueryV2_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeAggregationQueryV2_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeAggregationQueryV2_presult__isset {
+  _IClientRPCService_executeAggregationQueryV2_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeAggregationQueryV2_presult__isset;
+
+class IClientRPCService_executeAggregationQueryV2_presult {
+ public:
+
+
+  virtual ~IClientRPCService_executeAggregationQueryV2_presult() noexcept;
+  TSExecuteStatementResp* success;
+
+  _IClientRPCService_executeAggregationQueryV2_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_fetchResultsV2_args__isset {
+  _IClientRPCService_fetchResultsV2_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_fetchResultsV2_args__isset;
+
+class IClientRPCService_fetchResultsV2_args {
+ public:
+
+  IClientRPCService_fetchResultsV2_args(const IClientRPCService_fetchResultsV2_args&);
+  IClientRPCService_fetchResultsV2_args& operator=(const IClientRPCService_fetchResultsV2_args&);
+  IClientRPCService_fetchResultsV2_args() {
+  }
+
+  virtual ~IClientRPCService_fetchResultsV2_args() noexcept;
+  TSFetchResultsReq req;
+
+  _IClientRPCService_fetchResultsV2_args__isset __isset;
+
+  void __set_req(const TSFetchResultsReq& val);
+
+  bool operator == (const IClientRPCService_fetchResultsV2_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_fetchResultsV2_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_fetchResultsV2_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_fetchResultsV2_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_fetchResultsV2_pargs() noexcept;
+  const TSFetchResultsReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_fetchResultsV2_result__isset {
+  _IClientRPCService_fetchResultsV2_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_fetchResultsV2_result__isset;
+
+class IClientRPCService_fetchResultsV2_result {
+ public:
+
+  IClientRPCService_fetchResultsV2_result(const IClientRPCService_fetchResultsV2_result&);
+  IClientRPCService_fetchResultsV2_result& operator=(const IClientRPCService_fetchResultsV2_result&);
+  IClientRPCService_fetchResultsV2_result() {
+  }
+
+  virtual ~IClientRPCService_fetchResultsV2_result() noexcept;
+  TSFetchResultsResp success;
+
+  _IClientRPCService_fetchResultsV2_result__isset __isset;
+
+  void __set_success(const TSFetchResultsResp& val);
+
+  bool operator == (const IClientRPCService_fetchResultsV2_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_fetchResultsV2_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_fetchResultsV2_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_fetchResultsV2_presult__isset {
+  _IClientRPCService_fetchResultsV2_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_fetchResultsV2_presult__isset;
+
+class IClientRPCService_fetchResultsV2_presult {
+ public:
+
+
+  virtual ~IClientRPCService_fetchResultsV2_presult() noexcept;
+  TSFetchResultsResp* success;
+
+  _IClientRPCService_fetchResultsV2_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
 };
 
 typedef struct _IClientRPCService_openSession_args__isset {
@@ -4103,6 +4875,110 @@ class IClientRPCService_executeLastDataQuery_presult {
 
 };
 
+typedef struct _IClientRPCService_executeAggregationQuery_args__isset {
+  _IClientRPCService_executeAggregationQuery_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_executeAggregationQuery_args__isset;
+
+class IClientRPCService_executeAggregationQuery_args {
+ public:
+
+  IClientRPCService_executeAggregationQuery_args(const IClientRPCService_executeAggregationQuery_args&);
+  IClientRPCService_executeAggregationQuery_args& operator=(const IClientRPCService_executeAggregationQuery_args&);
+  IClientRPCService_executeAggregationQuery_args() {
+  }
+
+  virtual ~IClientRPCService_executeAggregationQuery_args() noexcept;
+  TSAggregationQueryReq req;
+
+  _IClientRPCService_executeAggregationQuery_args__isset __isset;
+
+  void __set_req(const TSAggregationQueryReq& val);
+
+  bool operator == (const IClientRPCService_executeAggregationQuery_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeAggregationQuery_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeAggregationQuery_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_executeAggregationQuery_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_executeAggregationQuery_pargs() noexcept;
+  const TSAggregationQueryReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeAggregationQuery_result__isset {
+  _IClientRPCService_executeAggregationQuery_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeAggregationQuery_result__isset;
+
+class IClientRPCService_executeAggregationQuery_result {
+ public:
+
+  IClientRPCService_executeAggregationQuery_result(const IClientRPCService_executeAggregationQuery_result&);
+  IClientRPCService_executeAggregationQuery_result& operator=(const IClientRPCService_executeAggregationQuery_result&);
+  IClientRPCService_executeAggregationQuery_result() {
+  }
+
+  virtual ~IClientRPCService_executeAggregationQuery_result() noexcept;
+  TSExecuteStatementResp success;
+
+  _IClientRPCService_executeAggregationQuery_result__isset __isset;
+
+  void __set_success(const TSExecuteStatementResp& val);
+
+  bool operator == (const IClientRPCService_executeAggregationQuery_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_executeAggregationQuery_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_executeAggregationQuery_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_executeAggregationQuery_presult__isset {
+  _IClientRPCService_executeAggregationQuery_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_executeAggregationQuery_presult__isset;
+
+class IClientRPCService_executeAggregationQuery_presult {
+ public:
+
+
+  virtual ~IClientRPCService_executeAggregationQuery_presult() noexcept;
+  TSExecuteStatementResp* success;
+
+  _IClientRPCService_executeAggregationQuery_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _IClientRPCService_requestStatementId_args__isset {
   _IClientRPCService_requestStatementId_args__isset() : sessionId(false) {}
   bool sessionId :1;
@@ -4727,306 +5603,6 @@ class IClientRPCService_setSchemaTemplate_presult {
 
 };
 
-typedef struct _IClientRPCService_transferPhysicalPlan_args__isset {
-  _IClientRPCService_transferPhysicalPlan_args__isset() : req(false) {}
-  bool req :1;
-} _IClientRPCService_transferPhysicalPlan_args__isset;
-
-class IClientRPCService_transferPhysicalPlan_args {
- public:
-
-  IClientRPCService_transferPhysicalPlan_args(const IClientRPCService_transferPhysicalPlan_args&);
-  IClientRPCService_transferPhysicalPlan_args& operator=(const IClientRPCService_transferPhysicalPlan_args&);
-  IClientRPCService_transferPhysicalPlan_args() {
-  }
-
-  virtual ~IClientRPCService_transferPhysicalPlan_args() noexcept;
-  TSPhysicalPlanReq req;
-
-  _IClientRPCService_transferPhysicalPlan_args__isset __isset;
-
-  void __set_req(const TSPhysicalPlanReq& val);
-
-  bool operator == (const IClientRPCService_transferPhysicalPlan_args & rhs) const
-  {
-    if (!(req == rhs.req))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_transferPhysicalPlan_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_transferPhysicalPlan_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class IClientRPCService_transferPhysicalPlan_pargs {
- public:
-
-
-  virtual ~IClientRPCService_transferPhysicalPlan_pargs() noexcept;
-  const TSPhysicalPlanReq* req;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_transferPhysicalPlan_result__isset {
-  _IClientRPCService_transferPhysicalPlan_result__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_transferPhysicalPlan_result__isset;
-
-class IClientRPCService_transferPhysicalPlan_result {
- public:
-
-  IClientRPCService_transferPhysicalPlan_result(const IClientRPCService_transferPhysicalPlan_result&);
-  IClientRPCService_transferPhysicalPlan_result& operator=(const IClientRPCService_transferPhysicalPlan_result&);
-  IClientRPCService_transferPhysicalPlan_result() {
-  }
-
-  virtual ~IClientRPCService_transferPhysicalPlan_result() noexcept;
-   ::TSStatus success;
-
-  _IClientRPCService_transferPhysicalPlan_result__isset __isset;
-
-  void __set_success(const  ::TSStatus& val);
-
-  bool operator == (const IClientRPCService_transferPhysicalPlan_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_transferPhysicalPlan_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_transferPhysicalPlan_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_transferPhysicalPlan_presult__isset {
-  _IClientRPCService_transferPhysicalPlan_presult__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_transferPhysicalPlan_presult__isset;
-
-class IClientRPCService_transferPhysicalPlan_presult {
- public:
-
-
-  virtual ~IClientRPCService_transferPhysicalPlan_presult() noexcept;
-   ::TSStatus* success;
-
-  _IClientRPCService_transferPhysicalPlan_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
-
-class IClientRPCService_probe_args {
- public:
-
-  IClientRPCService_probe_args(const IClientRPCService_probe_args&);
-  IClientRPCService_probe_args& operator=(const IClientRPCService_probe_args&);
-  IClientRPCService_probe_args() {
-  }
-
-  virtual ~IClientRPCService_probe_args() noexcept;
-
-  bool operator == (const IClientRPCService_probe_args & /* rhs */) const
-  {
-    return true;
-  }
-  bool operator != (const IClientRPCService_probe_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_probe_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class IClientRPCService_probe_pargs {
- public:
-
-
-  virtual ~IClientRPCService_probe_pargs() noexcept;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_probe_result__isset {
-  _IClientRPCService_probe_result__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_probe_result__isset;
-
-class IClientRPCService_probe_result {
- public:
-
-  IClientRPCService_probe_result(const IClientRPCService_probe_result&);
-  IClientRPCService_probe_result& operator=(const IClientRPCService_probe_result&);
-  IClientRPCService_probe_result() {
-  }
-
-  virtual ~IClientRPCService_probe_result() noexcept;
-   ::TSStatus success;
-
-  _IClientRPCService_probe_result__isset __isset;
-
-  void __set_success(const  ::TSStatus& val);
-
-  bool operator == (const IClientRPCService_probe_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_probe_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_probe_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_probe_presult__isset {
-  _IClientRPCService_probe_presult__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_probe_presult__isset;
-
-class IClientRPCService_probe_presult {
- public:
-
-
-  virtual ~IClientRPCService_probe_presult() noexcept;
-   ::TSStatus* success;
-
-  _IClientRPCService_probe_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
-typedef struct _IClientRPCService_getNodeStatus_args__isset {
-  _IClientRPCService_getNodeStatus_args__isset() : req(false) {}
-  bool req :1;
-} _IClientRPCService_getNodeStatus_args__isset;
-
-class IClientRPCService_getNodeStatus_args {
- public:
-
-  IClientRPCService_getNodeStatus_args(const IClientRPCService_getNodeStatus_args&);
-  IClientRPCService_getNodeStatus_args& operator=(const IClientRPCService_getNodeStatus_args&);
-  IClientRPCService_getNodeStatus_args() {
-  }
-
-  virtual ~IClientRPCService_getNodeStatus_args() noexcept;
-  TSNodeStatusReq req;
-
-  _IClientRPCService_getNodeStatus_args__isset __isset;
-
-  void __set_req(const TSNodeStatusReq& val);
-
-  bool operator == (const IClientRPCService_getNodeStatus_args & rhs) const
-  {
-    if (!(req == rhs.req))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_getNodeStatus_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_getNodeStatus_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class IClientRPCService_getNodeStatus_pargs {
- public:
-
-
-  virtual ~IClientRPCService_getNodeStatus_pargs() noexcept;
-  const TSNodeStatusReq* req;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_getNodeStatus_result__isset {
-  _IClientRPCService_getNodeStatus_result__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_getNodeStatus_result__isset;
-
-class IClientRPCService_getNodeStatus_result {
- public:
-
-  IClientRPCService_getNodeStatus_result(const IClientRPCService_getNodeStatus_result&);
-  IClientRPCService_getNodeStatus_result& operator=(const IClientRPCService_getNodeStatus_result&);
-  IClientRPCService_getNodeStatus_result() {
-  }
-
-  virtual ~IClientRPCService_getNodeStatus_result() noexcept;
-  TSNodeStatusResp success;
-
-  _IClientRPCService_getNodeStatus_result__isset __isset;
-
-  void __set_success(const TSNodeStatusResp& val);
-
-  bool operator == (const IClientRPCService_getNodeStatus_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const IClientRPCService_getNodeStatus_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const IClientRPCService_getNodeStatus_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _IClientRPCService_getNodeStatus_presult__isset {
-  _IClientRPCService_getNodeStatus_presult__isset() : success(false) {}
-  bool success :1;
-} _IClientRPCService_getNodeStatus_presult__isset;
-
-class IClientRPCService_getNodeStatus_presult {
- public:
-
-
-  virtual ~IClientRPCService_getNodeStatus_presult() noexcept;
-  TSNodeStatusResp* success;
-
-  _IClientRPCService_getNodeStatus_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
 typedef struct _IClientRPCService_unsetSchemaTemplate_args__isset {
   _IClientRPCService_unsetSchemaTemplate_args__isset() : req(false) {}
   bool req :1;
@@ -5235,6 +5811,613 @@ class IClientRPCService_dropSchemaTemplate_presult {
 
 };
 
+typedef struct _IClientRPCService_createTimeseriesOfSchemaTemplate_args__isset {
+  _IClientRPCService_createTimeseriesOfSchemaTemplate_args__isset() : req(false) {}
+  bool req :1;
+} _IClientRPCService_createTimeseriesOfSchemaTemplate_args__isset;
+
+class IClientRPCService_createTimeseriesOfSchemaTemplate_args {
+ public:
+
+  IClientRPCService_createTimeseriesOfSchemaTemplate_args(const IClientRPCService_createTimeseriesOfSchemaTemplate_args&);
+  IClientRPCService_createTimeseriesOfSchemaTemplate_args& operator=(const IClientRPCService_createTimeseriesOfSchemaTemplate_args&);
+  IClientRPCService_createTimeseriesOfSchemaTemplate_args() {
+  }
+
+  virtual ~IClientRPCService_createTimeseriesOfSchemaTemplate_args() noexcept;
+  TCreateTimeseriesOfSchemaTemplateReq req;
+
+  _IClientRPCService_createTimeseriesOfSchemaTemplate_args__isset __isset;
+
+  void __set_req(const TCreateTimeseriesOfSchemaTemplateReq& val);
+
+  bool operator == (const IClientRPCService_createTimeseriesOfSchemaTemplate_args & rhs) const
+  {
+    if (!(req == rhs.req))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_createTimeseriesOfSchemaTemplate_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_createTimeseriesOfSchemaTemplate_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_createTimeseriesOfSchemaTemplate_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_createTimeseriesOfSchemaTemplate_pargs() noexcept;
+  const TCreateTimeseriesOfSchemaTemplateReq* req;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_createTimeseriesOfSchemaTemplate_result__isset {
+  _IClientRPCService_createTimeseriesOfSchemaTemplate_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_createTimeseriesOfSchemaTemplate_result__isset;
+
+class IClientRPCService_createTimeseriesOfSchemaTemplate_result {
+ public:
+
+  IClientRPCService_createTimeseriesOfSchemaTemplate_result(const IClientRPCService_createTimeseriesOfSchemaTemplate_result&);
+  IClientRPCService_createTimeseriesOfSchemaTemplate_result& operator=(const IClientRPCService_createTimeseriesOfSchemaTemplate_result&);
+  IClientRPCService_createTimeseriesOfSchemaTemplate_result() {
+  }
+
+  virtual ~IClientRPCService_createTimeseriesOfSchemaTemplate_result() noexcept;
+   ::TSStatus success;
+
+  _IClientRPCService_createTimeseriesOfSchemaTemplate_result__isset __isset;
+
+  void __set_success(const  ::TSStatus& val);
+
+  bool operator == (const IClientRPCService_createTimeseriesOfSchemaTemplate_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_createTimeseriesOfSchemaTemplate_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_createTimeseriesOfSchemaTemplate_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_createTimeseriesOfSchemaTemplate_presult__isset {
+  _IClientRPCService_createTimeseriesOfSchemaTemplate_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_createTimeseriesOfSchemaTemplate_presult__isset;
+
+class IClientRPCService_createTimeseriesOfSchemaTemplate_presult {
+ public:
+
+
+  virtual ~IClientRPCService_createTimeseriesOfSchemaTemplate_presult() noexcept;
+   ::TSStatus* success;
+
+  _IClientRPCService_createTimeseriesOfSchemaTemplate_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_handshake_args__isset {
+  _IClientRPCService_handshake_args__isset() : info(false) {}
+  bool info :1;
+} _IClientRPCService_handshake_args__isset;
+
+class IClientRPCService_handshake_args {
+ public:
+
+  IClientRPCService_handshake_args(const IClientRPCService_handshake_args&);
+  IClientRPCService_handshake_args& operator=(const IClientRPCService_handshake_args&);
+  IClientRPCService_handshake_args() {
+  }
+
+  virtual ~IClientRPCService_handshake_args() noexcept;
+  TSyncIdentityInfo info;
+
+  _IClientRPCService_handshake_args__isset __isset;
+
+  void __set_info(const TSyncIdentityInfo& val);
+
+  bool operator == (const IClientRPCService_handshake_args & rhs) const
+  {
+    if (!(info == rhs.info))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_handshake_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_handshake_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_handshake_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_handshake_pargs() noexcept;
+  const TSyncIdentityInfo* info;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_handshake_result__isset {
+  _IClientRPCService_handshake_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_handshake_result__isset;
+
+class IClientRPCService_handshake_result {
+ public:
+
+  IClientRPCService_handshake_result(const IClientRPCService_handshake_result&);
+  IClientRPCService_handshake_result& operator=(const IClientRPCService_handshake_result&);
+  IClientRPCService_handshake_result() {
+  }
+
+  virtual ~IClientRPCService_handshake_result() noexcept;
+   ::TSStatus success;
+
+  _IClientRPCService_handshake_result__isset __isset;
+
+  void __set_success(const  ::TSStatus& val);
+
+  bool operator == (const IClientRPCService_handshake_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_handshake_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_handshake_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_handshake_presult__isset {
+  _IClientRPCService_handshake_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_handshake_presult__isset;
+
+class IClientRPCService_handshake_presult {
+ public:
+
+
+  virtual ~IClientRPCService_handshake_presult() noexcept;
+   ::TSStatus* success;
+
+  _IClientRPCService_handshake_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_sendPipeData_args__isset {
+  _IClientRPCService_sendPipeData_args__isset() : buff(false) {}
+  bool buff :1;
+} _IClientRPCService_sendPipeData_args__isset;
+
+class IClientRPCService_sendPipeData_args {
+ public:
+
+  IClientRPCService_sendPipeData_args(const IClientRPCService_sendPipeData_args&);
+  IClientRPCService_sendPipeData_args& operator=(const IClientRPCService_sendPipeData_args&);
+  IClientRPCService_sendPipeData_args() : buff() {
+  }
+
+  virtual ~IClientRPCService_sendPipeData_args() noexcept;
+  std::string buff;
+
+  _IClientRPCService_sendPipeData_args__isset __isset;
+
+  void __set_buff(const std::string& val);
+
+  bool operator == (const IClientRPCService_sendPipeData_args & rhs) const
+  {
+    if (!(buff == rhs.buff))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_sendPipeData_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_sendPipeData_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_sendPipeData_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_sendPipeData_pargs() noexcept;
+  const std::string* buff;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_sendPipeData_result__isset {
+  _IClientRPCService_sendPipeData_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_sendPipeData_result__isset;
+
+class IClientRPCService_sendPipeData_result {
+ public:
+
+  IClientRPCService_sendPipeData_result(const IClientRPCService_sendPipeData_result&);
+  IClientRPCService_sendPipeData_result& operator=(const IClientRPCService_sendPipeData_result&);
+  IClientRPCService_sendPipeData_result() {
+  }
+
+  virtual ~IClientRPCService_sendPipeData_result() noexcept;
+   ::TSStatus success;
+
+  _IClientRPCService_sendPipeData_result__isset __isset;
+
+  void __set_success(const  ::TSStatus& val);
+
+  bool operator == (const IClientRPCService_sendPipeData_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_sendPipeData_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_sendPipeData_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_sendPipeData_presult__isset {
+  _IClientRPCService_sendPipeData_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_sendPipeData_presult__isset;
+
+class IClientRPCService_sendPipeData_presult {
+ public:
+
+
+  virtual ~IClientRPCService_sendPipeData_presult() noexcept;
+   ::TSStatus* success;
+
+  _IClientRPCService_sendPipeData_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _IClientRPCService_sendFile_args__isset {
+  _IClientRPCService_sendFile_args__isset() : metaInfo(false), buff(false) {}
+  bool metaInfo :1;
+  bool buff :1;
+} _IClientRPCService_sendFile_args__isset;
+
+class IClientRPCService_sendFile_args {
+ public:
+
+  IClientRPCService_sendFile_args(const IClientRPCService_sendFile_args&);
+  IClientRPCService_sendFile_args& operator=(const IClientRPCService_sendFile_args&);
+  IClientRPCService_sendFile_args() : buff() {
+  }
+
+  virtual ~IClientRPCService_sendFile_args() noexcept;
+  TSyncTransportMetaInfo metaInfo;
+  std::string buff;
+
+  _IClientRPCService_sendFile_args__isset __isset;
+
+  void __set_metaInfo(const TSyncTransportMetaInfo& val);
+
+  void __set_buff(const std::string& val);
+
+  bool operator == (const IClientRPCService_sendFile_args & rhs) const
+  {
+    if (!(metaInfo == rhs.metaInfo))
+      return false;
+    if (!(buff == rhs.buff))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_sendFile_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_sendFile_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_sendFile_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_sendFile_pargs() noexcept;
+  const TSyncTransportMetaInfo* metaInfo;
+  const std::string* buff;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_sendFile_result__isset {
+  _IClientRPCService_sendFile_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_sendFile_result__isset;
+
+class IClientRPCService_sendFile_result {
+ public:
+
+  IClientRPCService_sendFile_result(const IClientRPCService_sendFile_result&);
+  IClientRPCService_sendFile_result& operator=(const IClientRPCService_sendFile_result&);
+  IClientRPCService_sendFile_result() {
+  }
+
+  virtual ~IClientRPCService_sendFile_result() noexcept;
+   ::TSStatus success;
+
+  _IClientRPCService_sendFile_result__isset __isset;
+
+  void __set_success(const  ::TSStatus& val);
+
+  bool operator == (const IClientRPCService_sendFile_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_sendFile_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_sendFile_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_sendFile_presult__isset {
+  _IClientRPCService_sendFile_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_sendFile_presult__isset;
+
+class IClientRPCService_sendFile_presult {
+ public:
+
+
+  virtual ~IClientRPCService_sendFile_presult() noexcept;
+   ::TSStatus* success;
+
+  _IClientRPCService_sendFile_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+
+class IClientRPCService_getBackupConfiguration_args {
+ public:
+
+  IClientRPCService_getBackupConfiguration_args(const IClientRPCService_getBackupConfiguration_args&);
+  IClientRPCService_getBackupConfiguration_args& operator=(const IClientRPCService_getBackupConfiguration_args&);
+  IClientRPCService_getBackupConfiguration_args() {
+  }
+
+  virtual ~IClientRPCService_getBackupConfiguration_args() noexcept;
+
+  bool operator == (const IClientRPCService_getBackupConfiguration_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const IClientRPCService_getBackupConfiguration_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_getBackupConfiguration_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_getBackupConfiguration_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_getBackupConfiguration_pargs() noexcept;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_getBackupConfiguration_result__isset {
+  _IClientRPCService_getBackupConfiguration_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_getBackupConfiguration_result__isset;
+
+class IClientRPCService_getBackupConfiguration_result {
+ public:
+
+  IClientRPCService_getBackupConfiguration_result(const IClientRPCService_getBackupConfiguration_result&);
+  IClientRPCService_getBackupConfiguration_result& operator=(const IClientRPCService_getBackupConfiguration_result&);
+  IClientRPCService_getBackupConfiguration_result() {
+  }
+
+  virtual ~IClientRPCService_getBackupConfiguration_result() noexcept;
+  TSBackupConfigurationResp success;
+
+  _IClientRPCService_getBackupConfiguration_result__isset __isset;
+
+  void __set_success(const TSBackupConfigurationResp& val);
+
+  bool operator == (const IClientRPCService_getBackupConfiguration_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_getBackupConfiguration_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_getBackupConfiguration_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_getBackupConfiguration_presult__isset {
+  _IClientRPCService_getBackupConfiguration_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_getBackupConfiguration_presult__isset;
+
+class IClientRPCService_getBackupConfiguration_presult {
+ public:
+
+
+  virtual ~IClientRPCService_getBackupConfiguration_presult() noexcept;
+  TSBackupConfigurationResp* success;
+
+  _IClientRPCService_getBackupConfiguration_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+
+class IClientRPCService_fetchAllConnectionsInfo_args {
+ public:
+
+  IClientRPCService_fetchAllConnectionsInfo_args(const IClientRPCService_fetchAllConnectionsInfo_args&);
+  IClientRPCService_fetchAllConnectionsInfo_args& operator=(const IClientRPCService_fetchAllConnectionsInfo_args&);
+  IClientRPCService_fetchAllConnectionsInfo_args() {
+  }
+
+  virtual ~IClientRPCService_fetchAllConnectionsInfo_args() noexcept;
+
+  bool operator == (const IClientRPCService_fetchAllConnectionsInfo_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const IClientRPCService_fetchAllConnectionsInfo_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_fetchAllConnectionsInfo_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class IClientRPCService_fetchAllConnectionsInfo_pargs {
+ public:
+
+
+  virtual ~IClientRPCService_fetchAllConnectionsInfo_pargs() noexcept;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_fetchAllConnectionsInfo_result__isset {
+  _IClientRPCService_fetchAllConnectionsInfo_result__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_fetchAllConnectionsInfo_result__isset;
+
+class IClientRPCService_fetchAllConnectionsInfo_result {
+ public:
+
+  IClientRPCService_fetchAllConnectionsInfo_result(const IClientRPCService_fetchAllConnectionsInfo_result&);
+  IClientRPCService_fetchAllConnectionsInfo_result& operator=(const IClientRPCService_fetchAllConnectionsInfo_result&);
+  IClientRPCService_fetchAllConnectionsInfo_result() {
+  }
+
+  virtual ~IClientRPCService_fetchAllConnectionsInfo_result() noexcept;
+  TSConnectionInfoResp success;
+
+  _IClientRPCService_fetchAllConnectionsInfo_result__isset __isset;
+
+  void __set_success(const TSConnectionInfoResp& val);
+
+  bool operator == (const IClientRPCService_fetchAllConnectionsInfo_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const IClientRPCService_fetchAllConnectionsInfo_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const IClientRPCService_fetchAllConnectionsInfo_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _IClientRPCService_fetchAllConnectionsInfo_presult__isset {
+  _IClientRPCService_fetchAllConnectionsInfo_presult__isset() : success(false) {}
+  bool success :1;
+} _IClientRPCService_fetchAllConnectionsInfo_presult__isset;
+
+class IClientRPCService_fetchAllConnectionsInfo_presult {
+ public:
+
+
+  virtual ~IClientRPCService_fetchAllConnectionsInfo_presult() noexcept;
+  TSConnectionInfoResp* success;
+
+  _IClientRPCService_fetchAllConnectionsInfo_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class IClientRPCServiceClient : virtual public IClientRPCServiceIf {
  public:
   IClientRPCServiceClient(std::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
@@ -5260,6 +6443,27 @@ class IClientRPCServiceClient : virtual public IClientRPCServiceIf {
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
+  void executeQueryStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req);
+  void send_executeQueryStatementV2(const TSExecuteStatementReq& req);
+  void recv_executeQueryStatementV2(TSExecuteStatementResp& _return);
+  void executeUpdateStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req);
+  void send_executeUpdateStatementV2(const TSExecuteStatementReq& req);
+  void recv_executeUpdateStatementV2(TSExecuteStatementResp& _return);
+  void executeStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req);
+  void send_executeStatementV2(const TSExecuteStatementReq& req);
+  void recv_executeStatementV2(TSExecuteStatementResp& _return);
+  void executeRawDataQueryV2(TSExecuteStatementResp& _return, const TSRawDataQueryReq& req);
+  void send_executeRawDataQueryV2(const TSRawDataQueryReq& req);
+  void recv_executeRawDataQueryV2(TSExecuteStatementResp& _return);
+  void executeLastDataQueryV2(TSExecuteStatementResp& _return, const TSLastDataQueryReq& req);
+  void send_executeLastDataQueryV2(const TSLastDataQueryReq& req);
+  void recv_executeLastDataQueryV2(TSExecuteStatementResp& _return);
+  void executeAggregationQueryV2(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req);
+  void send_executeAggregationQueryV2(const TSAggregationQueryReq& req);
+  void recv_executeAggregationQueryV2(TSExecuteStatementResp& _return);
+  void fetchResultsV2(TSFetchResultsResp& _return, const TSFetchResultsReq& req);
+  void send_fetchResultsV2(const TSFetchResultsReq& req);
+  void recv_fetchResultsV2(TSFetchResultsResp& _return);
   void openSession(TSOpenSessionResp& _return, const TSOpenSessionReq& req);
   void send_openSession(const TSOpenSessionReq& req);
   void recv_openSession(TSOpenSessionResp& _return);
@@ -5371,6 +6575,9 @@ class IClientRPCServiceClient : virtual public IClientRPCServiceIf {
   void executeLastDataQuery(TSExecuteStatementResp& _return, const TSLastDataQueryReq& req);
   void send_executeLastDataQuery(const TSLastDataQueryReq& req);
   void recv_executeLastDataQuery(TSExecuteStatementResp& _return);
+  void executeAggregationQuery(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req);
+  void send_executeAggregationQuery(const TSAggregationQueryReq& req);
+  void recv_executeAggregationQuery(TSExecuteStatementResp& _return);
   int64_t requestStatementId(const int64_t sessionId);
   void send_requestStatementId(const int64_t sessionId);
   int64_t recv_requestStatementId();
@@ -5389,21 +6596,30 @@ class IClientRPCServiceClient : virtual public IClientRPCServiceIf {
   void setSchemaTemplate( ::TSStatus& _return, const TSSetSchemaTemplateReq& req);
   void send_setSchemaTemplate(const TSSetSchemaTemplateReq& req);
   void recv_setSchemaTemplate( ::TSStatus& _return);
-  void transferPhysicalPlan( ::TSStatus& _return, const TSPhysicalPlanReq& req);
-  void send_transferPhysicalPlan(const TSPhysicalPlanReq& req);
-  void recv_transferPhysicalPlan( ::TSStatus& _return);
-  void probe( ::TSStatus& _return);
-  void send_probe();
-  void recv_probe( ::TSStatus& _return);
-  void getNodeStatus(TSNodeStatusResp& _return, const TSNodeStatusReq& req);
-  void send_getNodeStatus(const TSNodeStatusReq& req);
-  void recv_getNodeStatus(TSNodeStatusResp& _return);
   void unsetSchemaTemplate( ::TSStatus& _return, const TSUnsetSchemaTemplateReq& req);
   void send_unsetSchemaTemplate(const TSUnsetSchemaTemplateReq& req);
   void recv_unsetSchemaTemplate( ::TSStatus& _return);
   void dropSchemaTemplate( ::TSStatus& _return, const TSDropSchemaTemplateReq& req);
   void send_dropSchemaTemplate(const TSDropSchemaTemplateReq& req);
   void recv_dropSchemaTemplate( ::TSStatus& _return);
+  void createTimeseriesOfSchemaTemplate( ::TSStatus& _return, const TCreateTimeseriesOfSchemaTemplateReq& req);
+  void send_createTimeseriesOfSchemaTemplate(const TCreateTimeseriesOfSchemaTemplateReq& req);
+  void recv_createTimeseriesOfSchemaTemplate( ::TSStatus& _return);
+  void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info);
+  void send_handshake(const TSyncIdentityInfo& info);
+  void recv_handshake( ::TSStatus& _return);
+  void sendPipeData( ::TSStatus& _return, const std::string& buff);
+  void send_sendPipeData(const std::string& buff);
+  void recv_sendPipeData( ::TSStatus& _return);
+  void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
+  void send_sendFile(const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
+  void recv_sendFile( ::TSStatus& _return);
+  void getBackupConfiguration(TSBackupConfigurationResp& _return);
+  void send_getBackupConfiguration();
+  void recv_getBackupConfiguration(TSBackupConfigurationResp& _return);
+  void fetchAllConnectionsInfo(TSConnectionInfoResp& _return);
+  void send_fetchAllConnectionsInfo();
+  void recv_fetchAllConnectionsInfo(TSConnectionInfoResp& _return);
  protected:
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -5419,6 +6635,13 @@ class IClientRPCServiceProcessor : public ::apache::thrift::TDispatchProcessor {
   typedef  void (IClientRPCServiceProcessor::*ProcessFunction)(int32_t, ::apache::thrift::protocol::TProtocol*, ::apache::thrift::protocol::TProtocol*, void*);
   typedef std::map<std::string, ProcessFunction> ProcessMap;
   ProcessMap processMap_;
+  void process_executeQueryStatementV2(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_executeUpdateStatementV2(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_executeStatementV2(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_executeRawDataQueryV2(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_executeLastDataQueryV2(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_executeAggregationQueryV2(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_fetchResultsV2(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_openSession(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_closeSession(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_executeStatement(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -5456,20 +6679,31 @@ class IClientRPCServiceProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_deleteData(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_executeRawDataQuery(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_executeLastDataQuery(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_executeAggregationQuery(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_requestStatementId(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_createSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_appendSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_pruneSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_querySchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_setSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_transferPhysicalPlan(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_probe(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_getNodeStatus(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_unsetSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_dropSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_createTimeseriesOfSchemaTemplate(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_handshake(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sendPipeData(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_sendFile(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_getBackupConfiguration(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_fetchAllConnectionsInfo(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   IClientRPCServiceProcessor(::std::shared_ptr<IClientRPCServiceIf> iface) :
     iface_(iface) {
+    processMap_["executeQueryStatementV2"] = &IClientRPCServiceProcessor::process_executeQueryStatementV2;
+    processMap_["executeUpdateStatementV2"] = &IClientRPCServiceProcessor::process_executeUpdateStatementV2;
+    processMap_["executeStatementV2"] = &IClientRPCServiceProcessor::process_executeStatementV2;
+    processMap_["executeRawDataQueryV2"] = &IClientRPCServiceProcessor::process_executeRawDataQueryV2;
+    processMap_["executeLastDataQueryV2"] = &IClientRPCServiceProcessor::process_executeLastDataQueryV2;
+    processMap_["executeAggregationQueryV2"] = &IClientRPCServiceProcessor::process_executeAggregationQueryV2;
+    processMap_["fetchResultsV2"] = &IClientRPCServiceProcessor::process_fetchResultsV2;
     processMap_["openSession"] = &IClientRPCServiceProcessor::process_openSession;
     processMap_["closeSession"] = &IClientRPCServiceProcessor::process_closeSession;
     processMap_["executeStatement"] = &IClientRPCServiceProcessor::process_executeStatement;
@@ -5507,17 +6741,21 @@ class IClientRPCServiceProcessor : public ::apache::thrift::TDispatchProcessor {
     processMap_["deleteData"] = &IClientRPCServiceProcessor::process_deleteData;
     processMap_["executeRawDataQuery"] = &IClientRPCServiceProcessor::process_executeRawDataQuery;
     processMap_["executeLastDataQuery"] = &IClientRPCServiceProcessor::process_executeLastDataQuery;
+    processMap_["executeAggregationQuery"] = &IClientRPCServiceProcessor::process_executeAggregationQuery;
     processMap_["requestStatementId"] = &IClientRPCServiceProcessor::process_requestStatementId;
     processMap_["createSchemaTemplate"] = &IClientRPCServiceProcessor::process_createSchemaTemplate;
     processMap_["appendSchemaTemplate"] = &IClientRPCServiceProcessor::process_appendSchemaTemplate;
     processMap_["pruneSchemaTemplate"] = &IClientRPCServiceProcessor::process_pruneSchemaTemplate;
     processMap_["querySchemaTemplate"] = &IClientRPCServiceProcessor::process_querySchemaTemplate;
     processMap_["setSchemaTemplate"] = &IClientRPCServiceProcessor::process_setSchemaTemplate;
-    processMap_["transferPhysicalPlan"] = &IClientRPCServiceProcessor::process_transferPhysicalPlan;
-    processMap_["probe"] = &IClientRPCServiceProcessor::process_probe;
-    processMap_["getNodeStatus"] = &IClientRPCServiceProcessor::process_getNodeStatus;
     processMap_["unsetSchemaTemplate"] = &IClientRPCServiceProcessor::process_unsetSchemaTemplate;
     processMap_["dropSchemaTemplate"] = &IClientRPCServiceProcessor::process_dropSchemaTemplate;
+    processMap_["createTimeseriesOfSchemaTemplate"] = &IClientRPCServiceProcessor::process_createTimeseriesOfSchemaTemplate;
+    processMap_["handshake"] = &IClientRPCServiceProcessor::process_handshake;
+    processMap_["sendPipeData"] = &IClientRPCServiceProcessor::process_sendPipeData;
+    processMap_["sendFile"] = &IClientRPCServiceProcessor::process_sendFile;
+    processMap_["getBackupConfiguration"] = &IClientRPCServiceProcessor::process_getBackupConfiguration;
+    processMap_["fetchAllConnectionsInfo"] = &IClientRPCServiceProcessor::process_fetchAllConnectionsInfo;
   }
 
   virtual ~IClientRPCServiceProcessor() {}
@@ -5546,6 +6784,76 @@ class IClientRPCServiceMultiface : virtual public IClientRPCServiceIf {
     ifaces_.push_back(iface);
   }
  public:
+  void executeQueryStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->executeQueryStatementV2(_return, req);
+    }
+    ifaces_[i]->executeQueryStatementV2(_return, req);
+    return;
+  }
+
+  void executeUpdateStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->executeUpdateStatementV2(_return, req);
+    }
+    ifaces_[i]->executeUpdateStatementV2(_return, req);
+    return;
+  }
+
+  void executeStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->executeStatementV2(_return, req);
+    }
+    ifaces_[i]->executeStatementV2(_return, req);
+    return;
+  }
+
+  void executeRawDataQueryV2(TSExecuteStatementResp& _return, const TSRawDataQueryReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->executeRawDataQueryV2(_return, req);
+    }
+    ifaces_[i]->executeRawDataQueryV2(_return, req);
+    return;
+  }
+
+  void executeLastDataQueryV2(TSExecuteStatementResp& _return, const TSLastDataQueryReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->executeLastDataQueryV2(_return, req);
+    }
+    ifaces_[i]->executeLastDataQueryV2(_return, req);
+    return;
+  }
+
+  void executeAggregationQueryV2(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->executeAggregationQueryV2(_return, req);
+    }
+    ifaces_[i]->executeAggregationQueryV2(_return, req);
+    return;
+  }
+
+  void fetchResultsV2(TSFetchResultsResp& _return, const TSFetchResultsReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->fetchResultsV2(_return, req);
+    }
+    ifaces_[i]->fetchResultsV2(_return, req);
+    return;
+  }
+
   void openSession(TSOpenSessionResp& _return, const TSOpenSessionReq& req) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -5916,6 +7224,16 @@ class IClientRPCServiceMultiface : virtual public IClientRPCServiceIf {
     return;
   }
 
+  void executeAggregationQuery(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->executeAggregationQuery(_return, req);
+    }
+    ifaces_[i]->executeAggregationQuery(_return, req);
+    return;
+  }
+
   int64_t requestStatementId(const int64_t sessionId) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -5975,36 +7293,6 @@ class IClientRPCServiceMultiface : virtual public IClientRPCServiceIf {
     return;
   }
 
-  void transferPhysicalPlan( ::TSStatus& _return, const TSPhysicalPlanReq& req) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->transferPhysicalPlan(_return, req);
-    }
-    ifaces_[i]->transferPhysicalPlan(_return, req);
-    return;
-  }
-
-  void probe( ::TSStatus& _return) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->probe(_return);
-    }
-    ifaces_[i]->probe(_return);
-    return;
-  }
-
-  void getNodeStatus(TSNodeStatusResp& _return, const TSNodeStatusReq& req) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->getNodeStatus(_return, req);
-    }
-    ifaces_[i]->getNodeStatus(_return, req);
-    return;
-  }
-
   void unsetSchemaTemplate( ::TSStatus& _return, const TSUnsetSchemaTemplateReq& req) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -6022,6 +7310,66 @@ class IClientRPCServiceMultiface : virtual public IClientRPCServiceIf {
       ifaces_[i]->dropSchemaTemplate(_return, req);
     }
     ifaces_[i]->dropSchemaTemplate(_return, req);
+    return;
+  }
+
+  void createTimeseriesOfSchemaTemplate( ::TSStatus& _return, const TCreateTimeseriesOfSchemaTemplateReq& req) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->createTimeseriesOfSchemaTemplate(_return, req);
+    }
+    ifaces_[i]->createTimeseriesOfSchemaTemplate(_return, req);
+    return;
+  }
+
+  void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->handshake(_return, info);
+    }
+    ifaces_[i]->handshake(_return, info);
+    return;
+  }
+
+  void sendPipeData( ::TSStatus& _return, const std::string& buff) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sendPipeData(_return, buff);
+    }
+    ifaces_[i]->sendPipeData(_return, buff);
+    return;
+  }
+
+  void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->sendFile(_return, metaInfo, buff);
+    }
+    ifaces_[i]->sendFile(_return, metaInfo, buff);
+    return;
+  }
+
+  void getBackupConfiguration(TSBackupConfigurationResp& _return) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->getBackupConfiguration(_return);
+    }
+    ifaces_[i]->getBackupConfiguration(_return);
+    return;
+  }
+
+  void fetchAllConnectionsInfo(TSConnectionInfoResp& _return) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->fetchAllConnectionsInfo(_return);
+    }
+    ifaces_[i]->fetchAllConnectionsInfo(_return);
     return;
   }
 
@@ -6057,6 +7405,27 @@ class IClientRPCServiceConcurrentClient : virtual public IClientRPCServiceIf {
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
+  void executeQueryStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req);
+  int32_t send_executeQueryStatementV2(const TSExecuteStatementReq& req);
+  void recv_executeQueryStatementV2(TSExecuteStatementResp& _return, const int32_t seqid);
+  void executeUpdateStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req);
+  int32_t send_executeUpdateStatementV2(const TSExecuteStatementReq& req);
+  void recv_executeUpdateStatementV2(TSExecuteStatementResp& _return, const int32_t seqid);
+  void executeStatementV2(TSExecuteStatementResp& _return, const TSExecuteStatementReq& req);
+  int32_t send_executeStatementV2(const TSExecuteStatementReq& req);
+  void recv_executeStatementV2(TSExecuteStatementResp& _return, const int32_t seqid);
+  void executeRawDataQueryV2(TSExecuteStatementResp& _return, const TSRawDataQueryReq& req);
+  int32_t send_executeRawDataQueryV2(const TSRawDataQueryReq& req);
+  void recv_executeRawDataQueryV2(TSExecuteStatementResp& _return, const int32_t seqid);
+  void executeLastDataQueryV2(TSExecuteStatementResp& _return, const TSLastDataQueryReq& req);
+  int32_t send_executeLastDataQueryV2(const TSLastDataQueryReq& req);
+  void recv_executeLastDataQueryV2(TSExecuteStatementResp& _return, const int32_t seqid);
+  void executeAggregationQueryV2(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req);
+  int32_t send_executeAggregationQueryV2(const TSAggregationQueryReq& req);
+  void recv_executeAggregationQueryV2(TSExecuteStatementResp& _return, const int32_t seqid);
+  void fetchResultsV2(TSFetchResultsResp& _return, const TSFetchResultsReq& req);
+  int32_t send_fetchResultsV2(const TSFetchResultsReq& req);
+  void recv_fetchResultsV2(TSFetchResultsResp& _return, const int32_t seqid);
   void openSession(TSOpenSessionResp& _return, const TSOpenSessionReq& req);
   int32_t send_openSession(const TSOpenSessionReq& req);
   void recv_openSession(TSOpenSessionResp& _return, const int32_t seqid);
@@ -6168,6 +7537,9 @@ class IClientRPCServiceConcurrentClient : virtual public IClientRPCServiceIf {
   void executeLastDataQuery(TSExecuteStatementResp& _return, const TSLastDataQueryReq& req);
   int32_t send_executeLastDataQuery(const TSLastDataQueryReq& req);
   void recv_executeLastDataQuery(TSExecuteStatementResp& _return, const int32_t seqid);
+  void executeAggregationQuery(TSExecuteStatementResp& _return, const TSAggregationQueryReq& req);
+  int32_t send_executeAggregationQuery(const TSAggregationQueryReq& req);
+  void recv_executeAggregationQuery(TSExecuteStatementResp& _return, const int32_t seqid);
   int64_t requestStatementId(const int64_t sessionId);
   int32_t send_requestStatementId(const int64_t sessionId);
   int64_t recv_requestStatementId(const int32_t seqid);
@@ -6186,21 +7558,30 @@ class IClientRPCServiceConcurrentClient : virtual public IClientRPCServiceIf {
   void setSchemaTemplate( ::TSStatus& _return, const TSSetSchemaTemplateReq& req);
   int32_t send_setSchemaTemplate(const TSSetSchemaTemplateReq& req);
   void recv_setSchemaTemplate( ::TSStatus& _return, const int32_t seqid);
-  void transferPhysicalPlan( ::TSStatus& _return, const TSPhysicalPlanReq& req);
-  int32_t send_transferPhysicalPlan(const TSPhysicalPlanReq& req);
-  void recv_transferPhysicalPlan( ::TSStatus& _return, const int32_t seqid);
-  void probe( ::TSStatus& _return);
-  int32_t send_probe();
-  void recv_probe( ::TSStatus& _return, const int32_t seqid);
-  void getNodeStatus(TSNodeStatusResp& _return, const TSNodeStatusReq& req);
-  int32_t send_getNodeStatus(const TSNodeStatusReq& req);
-  void recv_getNodeStatus(TSNodeStatusResp& _return, const int32_t seqid);
   void unsetSchemaTemplate( ::TSStatus& _return, const TSUnsetSchemaTemplateReq& req);
   int32_t send_unsetSchemaTemplate(const TSUnsetSchemaTemplateReq& req);
   void recv_unsetSchemaTemplate( ::TSStatus& _return, const int32_t seqid);
   void dropSchemaTemplate( ::TSStatus& _return, const TSDropSchemaTemplateReq& req);
   int32_t send_dropSchemaTemplate(const TSDropSchemaTemplateReq& req);
   void recv_dropSchemaTemplate( ::TSStatus& _return, const int32_t seqid);
+  void createTimeseriesOfSchemaTemplate( ::TSStatus& _return, const TCreateTimeseriesOfSchemaTemplateReq& req);
+  int32_t send_createTimeseriesOfSchemaTemplate(const TCreateTimeseriesOfSchemaTemplateReq& req);
+  void recv_createTimeseriesOfSchemaTemplate( ::TSStatus& _return, const int32_t seqid);
+  void handshake( ::TSStatus& _return, const TSyncIdentityInfo& info);
+  int32_t send_handshake(const TSyncIdentityInfo& info);
+  void recv_handshake( ::TSStatus& _return, const int32_t seqid);
+  void sendPipeData( ::TSStatus& _return, const std::string& buff);
+  int32_t send_sendPipeData(const std::string& buff);
+  void recv_sendPipeData( ::TSStatus& _return, const int32_t seqid);
+  void sendFile( ::TSStatus& _return, const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
+  int32_t send_sendFile(const TSyncTransportMetaInfo& metaInfo, const std::string& buff);
+  void recv_sendFile( ::TSStatus& _return, const int32_t seqid);
+  void getBackupConfiguration(TSBackupConfigurationResp& _return);
+  int32_t send_getBackupConfiguration();
+  void recv_getBackupConfiguration(TSBackupConfigurationResp& _return, const int32_t seqid);
+  void fetchAllConnectionsInfo(TSConnectionInfoResp& _return);
+  int32_t send_fetchAllConnectionsInfo();
+  void recv_fetchAllConnectionsInfo(TSConnectionInfoResp& _return, const int32_t seqid);
  protected:
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   std::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;

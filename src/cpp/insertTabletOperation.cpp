@@ -46,7 +46,7 @@ bool InsertTabletOperation::doPreWork() {
                     tags[i]["tag1"] = sgPath + "tv1";
                     tags[i]["tag2"] = sgPath + "tv2";
                 }
-                tablet.setTags(tags);
+                //tablet.setTags(tags);
             }
 
             char randVal[16];

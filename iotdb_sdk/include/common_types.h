@@ -23,7 +23,7 @@
 
 struct TConsensusGroupType {
   enum type {
-    PartitionRegion = 0,
+    ConfigRegion = 0,
     DataRegion = 1,
     SchemaRegion = 2
   };
@@ -51,6 +51,72 @@ std::ostream& operator<<(std::ostream& out, const TRegionMigrateFailedType::type
 
 std::string to_string(const TRegionMigrateFailedType::type& val);
 
+struct TAggregationType {
+  enum type {
+    COUNT = 0,
+    AVG = 1,
+    SUM = 2,
+    FIRST_VALUE = 3,
+    LAST_VALUE = 4,
+    MAX_TIME = 5,
+    MIN_TIME = 6,
+    MAX_VALUE = 7,
+    MIN_VALUE = 8,
+    EXTREME = 9,
+    COUNT_IF = 10,
+    TIME_DURATION = 11,
+    MODE = 12
+  };
+};
+
+extern const std::map<int, const char*> _TAggregationType_VALUES_TO_NAMES;
+
+std::ostream& operator<<(std::ostream& out, const TAggregationType::type& val);
+
+std::string to_string(const TAggregationType::type& val);
+
+struct TrainingState {
+  enum type {
+    PENDING = 0,
+    RUNNING = 1,
+    FINISHED = 2,
+    FAILED = 3,
+    DROPPING = 4
+  };
+};
+
+extern const std::map<int, const char*> _TrainingState_VALUES_TO_NAMES;
+
+std::ostream& operator<<(std::ostream& out, const TrainingState::type& val);
+
+std::string to_string(const TrainingState::type& val);
+
+struct ModelTask {
+  enum type {
+    FORECAST = 0
+  };
+};
+
+extern const std::map<int, const char*> _ModelTask_VALUES_TO_NAMES;
+
+std::ostream& operator<<(std::ostream& out, const ModelTask::type& val);
+
+std::string to_string(const ModelTask::type& val);
+
+struct EvaluateMetric {
+  enum type {
+    MSE = 0,
+    MAE = 1,
+    RMSE = 2
+  };
+};
+
+extern const std::map<int, const char*> _EvaluateMetric_VALUES_TO_NAMES;
+
+std::ostream& operator<<(std::ostream& out, const EvaluateMetric::type& val);
+
+std::string to_string(const EvaluateMetric::type& val);
+
 class TEndPoint;
 
 class TSStatus;
@@ -72,6 +138,8 @@ class TDataNodeLocation;
 class TDataNodeConfiguration;
 
 class TFlushReq;
+
+class TSettleReq;
 
 class TSchemaNode;
 
@@ -585,6 +653,42 @@ class TFlushReq : public virtual ::apache::thrift::TBase {
 void swap(TFlushReq &a, TFlushReq &b);
 
 std::ostream& operator<<(std::ostream& out, const TFlushReq& obj);
+
+
+class TSettleReq : public virtual ::apache::thrift::TBase {
+ public:
+
+  TSettleReq(const TSettleReq&);
+  TSettleReq& operator=(const TSettleReq&);
+  TSettleReq() {
+  }
+
+  virtual ~TSettleReq() noexcept;
+  std::vector<std::string>  paths;
+
+  void __set_paths(const std::vector<std::string> & val);
+
+  bool operator == (const TSettleReq & rhs) const
+  {
+    if (!(paths == rhs.paths))
+      return false;
+    return true;
+  }
+  bool operator != (const TSettleReq &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSettleReq & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TSettleReq &a, TSettleReq &b);
+
+std::ostream& operator<<(std::ostream& out, const TSettleReq& obj);
 
 
 class TSchemaNode : public virtual ::apache::thrift::TBase {

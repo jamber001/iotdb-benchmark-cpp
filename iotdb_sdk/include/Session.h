@@ -42,6 +42,11 @@
 #include <thrift/transport/TBufferTransports.h>
 #include "IClientRPCService.h"
 
+//== For compatible with Windows OS ==
+#ifndef LONG_LONG_MIN
+#define LONG_LONG_MIN 0x8000000000000000
+#endif
+
 using namespace std;
 
 using ::apache::thrift::protocol::TBinaryProtocol;
@@ -99,6 +104,10 @@ public:
     explicit ExecutionException(const char *m) : IoTDBException(m) {}
 
     explicit ExecutionException(const std::string &m) : IoTDBException(m) {}
+
+    explicit ExecutionException(const std::string &m, const TSStatus &tsStatus) : IoTDBException(m), status(tsStatus) {}
+
+    TSStatus status;
 };
 
 class BatchExecutionException : public IoTDBException {
@@ -127,7 +136,7 @@ public:
 
 namespace Version {
     enum Version {
-        V_0_12, V_0_13
+        V_0_12, V_0_13, V_1_0
     };
 }
 
@@ -140,7 +149,8 @@ namespace CompressionType {
         SDT = (char) 4,
         PAA = (char) 5,
         PLA = (char) 6,
-        LZ4 = (char) 7
+        LZ4 = (char) 7,
+        ZSTD = (char) 8
     };
 }
 
@@ -169,67 +179,63 @@ namespace TSEncoding {
         REGULAR = (char) 7,
         GORILLA = (char) 8,
         ZIGZAG = (char) 9,
-        FREQ = (char) 10
+        FREQ = (char) 10,
+	CHIMP = (char) 11
     };
 }
 
 namespace TSStatusCode {
     enum TSStatusCode {
         SUCCESS_STATUS = 200,
-        STILL_EXECUTING_STATUS = 201,
-        INVALID_HANDLE_STATUS = 202,
 
-        NODE_DELETE_FAILED_ERROR = 298,
-        ALIAS_ALREADY_EXIST_ERROR = 299,
-        PATH_ALREADY_EXIST_ERROR = 300,
-        PATH_NOT_EXIST_ERROR = 301,
-        UNSUPPORTED_FETCH_METADATA_OPERATION_ERROR = 302,
-        METADATA_ERROR = 303,
-        OUT_OF_TTL_ERROR = 305,
-        CONFIG_ADJUSTER = 306,
-        MERGE_ERROR = 307,
-        SYSTEM_CHECK_ERROR = 308,
-        SYNC_DEVICE_OWNER_CONFLICT_ERROR = 309,
-        SYNC_CONNECTION_EXCEPTION = 310,
-        STORAGE_GROUP_PROCESSOR_ERROR = 311,
-        STORAGE_GROUP_ERROR = 312,
-        STORAGE_ENGINE_ERROR = 313,
-        TSFILE_PROCESSOR_ERROR = 314,
-        PATH_ILLEGAL = 315,
-        LOAD_FILE_ERROR = 316,
-        STORAGE_GROUP_NOT_READY = 317,
+        // System level
+        INCOMPATIBLE_VERSION = 201,
+        CONFIGURATION_ERROR = 202,
+        START_UP_ERROR = 203,
+        SHUT_DOWN_ERROR = 204,
 
-        EXECUTE_STATEMENT_ERROR = 400,
-        SQL_PARSE_ERROR = 401,
-        GENERATE_TIME_ZONE_ERROR = 402,
-        SET_TIME_ZONE_ERROR = 403,
-        NOT_STORAGE_GROUP_ERROR = 404,
-        QUERY_NOT_ALLOWED = 405,
-        AST_FORMAT_ERROR = 406,
-        LOGICAL_OPERATOR_ERROR = 407,
-        LOGICAL_OPTIMIZE_ERROR = 408,
-        UNSUPPORTED_FILL_TYPE_ERROR = 409,
-        PATH_ERROR = 410,
-        QUERY_PROCESS_ERROR = 411,
-        WRITE_PROCESS_ERROR = 412,
+        // General Error
+        UNSUPPORTED_OPERATION = 300,
+        EXECUTE_STATEMENT_ERROR = 301,
+        MULTIPLE_ERROR = 302,
+        ILLEGAL_PARAMETER = 303,
+        OVERLAP_WITH_EXISTING_TASK = 304,
+        INTERNAL_SERVER_ERROR = 305,
 
-        INTERNAL_SERVER_ERROR = 500,
-        CLOSE_OPERATION_ERROR = 501,
-        READ_ONLY_SYSTEM_ERROR = 502,
-        DISK_SPACE_INSUFFICIENT_ERROR = 503,
-        START_UP_ERROR = 504,
-        SHUT_DOWN_ERROR = 505,
-        MULTIPLE_ERROR = 506,
-        WRONG_LOGIN_PASSWORD_ERROR = 600,
-        NOT_LOGIN_ERROR = 601,
-        NO_PERMISSION_ERROR = 602,
-        UNINITIALIZED_AUTH_ERROR = 603,
-        PARTITION_NOT_READY = 700,
-        TIME_OUT = 701,
-        NO_LEADER = 702,
-        UNSUPPORTED_OPERATION = 703,
-        NODE_READ_ONLY = 704,
-        INCOMPATIBLE_VERSION = 203,
+        // Client,
+        REDIRECTION_RECOMMEND = 400,
+
+        // Schema Engine
+        DATABASE_NOT_EXIST = 500,
+        DATABASE_ALREADY_EXISTS = 501,
+        SERIES_OVERFLOW = 502,
+        TIMESERIES_ALREADY_EXIST = 503,
+        TIMESERIES_IN_BLACK_LIST = 504,
+        ALIAS_ALREADY_EXIST = 505,
+        PATH_ALREADY_EXIST = 506,
+        METADATA_ERROR = 507,
+        PATH_NOT_EXIST = 508,
+        ILLEGAL_PATH = 509,
+        CREATE_TEMPLATE_ERROR = 510,
+        DUPLICATED_TEMPLATE = 511,
+        UNDEFINED_TEMPLATE = 512,
+        TEMPLATE_NOT_SET = 513,
+        DIFFERENT_TEMPLATE = 514,
+        TEMPLATE_IS_IN_USE = 515,
+        TEMPLATE_INCOMPATIBLE = 516,
+        SEGMENT_NOT_FOUND = 517,
+        PAGE_OUT_OF_SPACE = 518,
+        RECORD_DUPLICATED=519,
+        SEGMENT_OUT_OF_SPACE = 520,
+        SCHEMA_FILE_NOT_EXISTS = 521,
+        OVERSIZE_RECORD = 522,
+        SCHEMA_FILE_REDO_LOG_BROKEN = 523,
+        TEMPLATE_NOT_ACTIVATED = 524,
+
+        // Storage Engine
+        SYSTEM_READ_ONLY = 600,
+        STORAGE_ENGINE_ERROR = 601,
+        STORAGE_ENGINE_NOT_READY = 602,
     };
 }
 
@@ -294,7 +300,18 @@ public:
     }
 
     int64_t getInt64() {
+#ifdef ARCH32
+        const char *buf_addr = getOrderedByte(8);
+        if (reinterpret_cast<uint32_t>(buf_addr) % 4 == 0) {
+            return *(int64_t *)buf_addr;
+        } else {
+            char tmp_buf[8];
+            memcpy(tmp_buf, buf_addr, 8);
+            return *(int64_t*)tmp_buf;
+        }
+#else
         return *(int64_t *) getOrderedByte(8);
+#endif
     }
 
     float getFloat() {
@@ -302,7 +319,18 @@ public:
     }
 
     double getDouble() {
+#ifdef ARCH32
+        const char *buf_addr = getOrderedByte(8);
+        if (reinterpret_cast<uint32_t>(buf_addr) % 4 == 0) {
+            return  *(double*)buf_addr;
+        } else {
+            char tmp_buf[8];
+            memcpy(tmp_buf, buf_addr, 8);
+            return *(double*)tmp_buf;
+        }
+#else
         return *(double *) getOrderedByte(8);
+#endif
     }
 
     char getChar() {
@@ -535,7 +563,6 @@ public:
     std::vector<BitMap> bitMaps; // each bitmap represents the existence of each value in the current column
     size_t rowSize;    //the number of rows to include in this tablet
     size_t maxRowNumber;   // the maximum number of rows for this tablet
-    std::vector <std::map<std::string, std::string>> tags;  //Optional tags info for every measurement.
     bool isAligned;   // whether this tablet store data of aligned timeseries or not
 
     Tablet() = default;
@@ -578,12 +605,6 @@ public:
         this->rowSize = 0;
     }
 
-    Tablet(const std::string &deviceId, const std::vector<std::pair<std::string, TSDataType::TSDataType>> &schemas,
-           size_t maxRowNumber, const std::vector<std::map<std::string, std::string> > &tags, bool _isAligned = false) : deviceId(deviceId), schemas(schemas),
-                                                           maxRowNumber(maxRowNumber), tags(tags), isAligned(_isAligned) {
-        Tablet(deviceId, schemas, DEFAULT_ROW_SIZE, _isAligned);
-    }
-
     ~Tablet() {
         try {
             deleteColumns();
@@ -601,8 +622,6 @@ public:
     size_t getValueByteSize(); // total byte size that values occupies
 
     void setAligned(bool isAligned);
-
-    bool setTags(const std::vector <std::map<std::string, std::string>> &tags);
 };
 
 class SessionUtils {
@@ -681,21 +700,23 @@ public:
 
 class SessionDataSet {
 private:
+    const string TIMESTAMP_STR = "Time";
     bool hasCachedRecord = false;
     std::string sql;
     int64_t queryId;
     int64_t statementId;
     int64_t sessionId;
     std::shared_ptr<IClientRPCServiceIf> client;
-    int batchSize = 1024;
+    int fetchSize = 1024;
     std::vector<std::string> columnNameList;
-    std::vector<std::string> columnTypeDeduplicatedList;
+    std::vector<std::string> columnTypeList;
     // duplicated column index -> origin index
     std::unordered_map<int, int> duplicateLocation;
     // column name -> column location
     std::unordered_map<std::string, int> columnMap;
     // column size
     int columnSize = 0;
+    int columnFieldStartIndex = 0;   //Except Timestamp column, 1st field's pos in columnNameList
     bool isIgnoreTimeStamp = false;
 
     int rowsIndex = 0; // used to record the row index in current TSQueryDataSet
@@ -723,32 +744,37 @@ public:
         this->queryId = queryId;
         this->statementId = statementId;
         this->client = client;
-        this->columnNameList = columnNameList;
         this->currentBitmap = new char[columnNameList.size()];
-        this->columnSize = (int)columnNameList.size();
         this->isIgnoreTimeStamp = isIgnoreTimeStamp;
+        if (!isIgnoreTimeStamp) {
+            columnFieldStartIndex = 1;
+            this->columnNameList.push_back(TIMESTAMP_STR);
+            this->columnTypeList.push_back("INT64");
+        }
+        this->columnNameList.insert(this->columnNameList.end(), columnNameList.begin(), columnNameList.end());
+        this->columnTypeList.insert(this->columnTypeList.end(), columnTypeList.begin(), columnTypeList.end());
 
-        // column name -> column location
-        for (int i = 0; i < (int) columnNameList.size(); i++) {
-            std::string name = columnNameList[i];
+        valueBuffers.reserve(queryDataSet->valueList.size());
+        bitmapBuffers.reserve(queryDataSet->bitmapList.size());
+        int deduplicateIdx = 0;
+        std::unordered_map<std::string, int> columnToFirstIndexMap;
+        for (size_t i = columnFieldStartIndex; i < this->columnNameList.size(); i++) {
+            std::string name = this->columnNameList[i];
             if (this->columnMap.find(name) != this->columnMap.end()) {
-                duplicateLocation[i] = columnMap[name];
+                duplicateLocation[i] = columnToFirstIndexMap[name];
             } else {
-                this->columnMap[name] = i;
-                this->columnTypeDeduplicatedList.push_back(columnTypeList[i]);
-            }
-            if (!columnNameIndexMap.empty()) {
-                this->valueBuffers.push_back(
-                        std::unique_ptr<MyStringBuffer>(
-                                new MyStringBuffer(queryDataSet->valueList[columnNameIndexMap[name]])));
-                this->bitmapBuffers.push_back(
-                        std::unique_ptr<MyStringBuffer>(
-                                new MyStringBuffer(queryDataSet->bitmapList[columnNameIndexMap[name]])));
-            } else {
-                this->valueBuffers.push_back(
-                        std::unique_ptr<MyStringBuffer>(new MyStringBuffer(queryDataSet->valueList[columnMap[name]])));
-                this->bitmapBuffers.push_back(
-                        std::unique_ptr<MyStringBuffer>(new MyStringBuffer(queryDataSet->bitmapList[columnMap[name]])));
+                columnToFirstIndexMap[name] = i;
+                if (!columnNameIndexMap.empty()) {
+                    int valueIndex = columnNameIndexMap[name];
+                    this->columnMap[name] = valueIndex;
+                    this->valueBuffers.emplace_back(new MyStringBuffer(queryDataSet->valueList[valueIndex]));
+                    this->bitmapBuffers.emplace_back(new MyStringBuffer(queryDataSet->bitmapList[valueIndex]));
+                } else {
+                    this->columnMap[name] = deduplicateIdx;
+                    this->valueBuffers.emplace_back(new MyStringBuffer(queryDataSet->valueList[deduplicateIdx]));
+                    this->bitmapBuffers.emplace_back(new MyStringBuffer(queryDataSet->bitmapList[deduplicateIdx]));
+                }
+                deduplicateIdx++;
             }
         }
         this->tsQueryDataSet = queryDataSet;
@@ -769,11 +795,13 @@ public:
         }
     }
 
-    int getBatchSize();
+    int getFetchSize();
 
-    void setBatchSize(int batchSize);
+    void setFetchSize(int fetchSize);
 
     std::vector<std::string> getColumnNames();
+
+    std::vector<std::string> getColumnTypeList();
 
     bool hasNext();
 
@@ -945,6 +973,7 @@ private:
     const static int DEFAULT_TIMEOUT_MS = 0;
     Version::Version version;
 
+private:
     static bool checkSorted(const Tablet &tablet);
 
     static bool checkSorted(const std::vector<int64_t> &times);
@@ -952,10 +981,6 @@ private:
     static void sortTablet(Tablet &tablet);
 
     static void sortIndexByTimestamp(int *index, std::vector<int64_t> &timestamps, int length);
-
-    std::string getTimeZone();
-
-    void setTimeZone(const std::string &zoneId);
 
     void appendValues(std::string &buffer, const char *value, int size);
 
@@ -975,42 +1000,47 @@ private:
 
     std::string getVersionString(Version::Version version);
 
+    void initZoneId();
+
 public:
-    Session(const std::string &host, int rpcPort) : username("user"), password("password"), version(Version::V_0_13) {
+    Session(const std::string &host, int rpcPort) : username("user"), password("password"), version(Version::V_1_0) {
         this->host = host;
         this->rpcPort = rpcPort;
+        initZoneId();
     }
 
     Session(const std::string &host, int rpcPort, const std::string &username, const std::string &password)
-            : fetchSize(10000) {
+            : fetchSize(DEFAULT_FETCH_SIZE) {
         this->host = host;
         this->rpcPort = rpcPort;
         this->username = username;
         this->password = password;
-        this->zoneId = "UTC+08:00";
-        this->version = Version::V_0_13;
+        this->version = Version::V_1_0;
+        initZoneId();
     }
 
     Session(const std::string &host, int rpcPort, const std::string &username, const std::string &password,
-            int fetchSize) {
+            const std::string &zoneId, int fetchSize = DEFAULT_FETCH_SIZE) {
         this->host = host;
         this->rpcPort = rpcPort;
         this->username = username;
         this->password = password;
+        this->zoneId = zoneId;
         this->fetchSize = fetchSize;
-        this->zoneId = "UTC+08:00";
-        this->version = Version::V_0_13;
+        this->version = Version::V_1_0;
+        initZoneId();
     }
 
     Session(const std::string &host, const std::string &rpcPort, const std::string &username = "user",
-            const std::string &password = "password", int fetchSize = 10000) {
+            const std::string &password = "password", const std::string &zoneId="", int fetchSize = DEFAULT_FETCH_SIZE) {
         this->host = host;
         this->rpcPort = stoi(rpcPort);
         this->username = username;
         this->password = password;
+        this->zoneId = zoneId;
         this->fetchSize = fetchSize;
-        this->zoneId = "UTC+08:00";
-        this->version = Version::V_0_13;
+        this->version = Version::V_1_0;
+        initZoneId();
     }
 
     ~Session();
@@ -1024,6 +1054,10 @@ public:
     void open(bool enableRPCCompression, int connectionTimeoutInMs);
 
     void close();
+
+    void setTimeZone(const std::string &zoneId);
+
+    std::string getTimeZone();
 
     void insertRecord(const std::string &deviceId, int64_t time, const std::vector<std::string> &measurements,
                       const std::vector<std::string> &values);
@@ -1118,9 +1152,11 @@ public:
 
     void deleteTimeseries(const std::vector<std::string> &paths);
 
-    void deleteData(const std::string &path, int64_t time);
+    void deleteData(const std::string &path, int64_t endTime);
 
-    void deleteData(const std::vector<std::string> &deviceId, int64_t time);
+    void deleteData(const std::vector<std::string> &paths, int64_t endTime);
+
+    void deleteData(const std::vector<std::string> &paths, int64_t startTime, int64_t endTime);
 
     void setStorageGroup(const std::string &storageGroupId);
 
@@ -1154,9 +1190,17 @@ public:
 
     bool checkTimeseriesExists(const std::string &path);
 
-    std::unique_ptr<SessionDataSet> executeQueryStatement(const std::string &sql);
+    std::unique_ptr<SessionDataSet> executeQueryStatement(const std::string &sql) ;
+
+    std::unique_ptr<SessionDataSet> executeQueryStatement(const std::string &sql, int64_t timeoutInMs) ;
 
     void executeNonQueryStatement(const std::string &sql);
+
+    std::unique_ptr<SessionDataSet> executeRawDataQuery(const std::vector<std::string> &paths, int64_t startTime, int64_t endTime);
+
+    std::unique_ptr<SessionDataSet> executeLastDataQuery(const std::vector<std::string> &paths);
+
+    std::unique_ptr<SessionDataSet> executeLastDataQuery(const std::vector<std::string> &paths, int64_t lastTime);
 
     void createSchemaTemplate(const Template &templ);
 

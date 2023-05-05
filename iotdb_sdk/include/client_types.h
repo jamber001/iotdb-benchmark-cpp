@@ -36,6 +36,20 @@ std::ostream& operator<<(std::ostream& out, const TSProtocolVersion::type& val);
 
 std::string to_string(const TSProtocolVersion::type& val);
 
+struct TSConnectionType {
+  enum type {
+    THRIFT_BASED = 0,
+    MQTT_BASED = 1,
+    INTERNAL = 2
+  };
+};
+
+extern const std::map<int, const char*> _TSConnectionType_VALUES_TO_NAMES;
+
+std::ostream& operator<<(std::ostream& out, const TSConnectionType::type& val);
+
+std::string to_string(const TSConnectionType::type& val);
+
 class TSQueryDataSet;
 
 class TSQueryNonAlignDataSet;
@@ -98,6 +112,8 @@ class TSRawDataQueryReq;
 
 class TSLastDataQueryReq;
 
+class TSAggregationQueryReq;
+
 class TSCreateMultiTimeseriesReq;
 
 class ServerProperties;
@@ -108,12 +124,6 @@ class TSCreateSchemaTemplateReq;
 
 class TSAppendSchemaTemplateReq;
 
-class TSPhysicalPlanReq;
-
-class TSNodeStatusReq;
-
-class TSNodeStatusResp;
-
 class TSPruneSchemaTemplateReq;
 
 class TSQueryTemplateReq;
@@ -123,6 +133,18 @@ class TSQueryTemplateResp;
 class TSUnsetSchemaTemplateReq;
 
 class TSDropSchemaTemplateReq;
+
+class TCreateTimeseriesOfSchemaTemplateReq;
+
+class TSyncIdentityInfo;
+
+class TSyncTransportMetaInfo;
+
+class TSBackupConfigurationResp;
+
+class TSConnectionInfo;
+
+class TSConnectionInfoResp;
 
 
 class TSQueryDataSet : public virtual ::apache::thrift::TBase {
@@ -330,7 +352,7 @@ void swap(TSTracingInfo &a, TSTracingInfo &b);
 std::ostream& operator<<(std::ostream& out, const TSTracingInfo& obj);
 
 typedef struct _TSExecuteStatementResp__isset {
-  _TSExecuteStatementResp__isset() : queryId(false), columns(false), operationType(false), ignoreTimeStamp(false), dataTypeList(false), queryDataSet(false), nonAlignQueryDataSet(false), columnNameIndexMap(false), sgColumns(false), aliasColumns(false), tracingInfo(false) {}
+  _TSExecuteStatementResp__isset() : queryId(false), columns(false), operationType(false), ignoreTimeStamp(false), dataTypeList(false), queryDataSet(false), nonAlignQueryDataSet(false), columnNameIndexMap(false), sgColumns(false), aliasColumns(false), tracingInfo(false), queryResult(false), moreData(false) {}
   bool queryId :1;
   bool columns :1;
   bool operationType :1;
@@ -342,6 +364,8 @@ typedef struct _TSExecuteStatementResp__isset {
   bool sgColumns :1;
   bool aliasColumns :1;
   bool tracingInfo :1;
+  bool queryResult :1;
+  bool moreData :1;
 } _TSExecuteStatementResp__isset;
 
 class TSExecuteStatementResp : public virtual ::apache::thrift::TBase {
@@ -349,7 +373,7 @@ class TSExecuteStatementResp : public virtual ::apache::thrift::TBase {
 
   TSExecuteStatementResp(const TSExecuteStatementResp&);
   TSExecuteStatementResp& operator=(const TSExecuteStatementResp&);
-  TSExecuteStatementResp() : queryId(0), operationType(), ignoreTimeStamp(0) {
+  TSExecuteStatementResp() : queryId(0), operationType(), ignoreTimeStamp(0), moreData(0) {
   }
 
   virtual ~TSExecuteStatementResp() noexcept;
@@ -365,6 +389,8 @@ class TSExecuteStatementResp : public virtual ::apache::thrift::TBase {
   std::vector<std::string>  sgColumns;
   std::vector<int8_t>  aliasColumns;
   TSTracingInfo tracingInfo;
+  std::vector<std::string>  queryResult;
+  bool moreData;
 
   _TSExecuteStatementResp__isset __isset;
 
@@ -391,6 +417,10 @@ class TSExecuteStatementResp : public virtual ::apache::thrift::TBase {
   void __set_aliasColumns(const std::vector<int8_t> & val);
 
   void __set_tracingInfo(const TSTracingInfo& val);
+
+  void __set_queryResult(const std::vector<std::string> & val);
+
+  void __set_moreData(const bool val);
 
   bool operator == (const TSExecuteStatementResp & rhs) const
   {
@@ -439,6 +469,14 @@ class TSExecuteStatementResp : public virtual ::apache::thrift::TBase {
     if (__isset.tracingInfo != rhs.__isset.tracingInfo)
       return false;
     else if (__isset.tracingInfo && !(tracingInfo == rhs.tracingInfo))
+      return false;
+    if (__isset.queryResult != rhs.__isset.queryResult)
+      return false;
+    else if (__isset.queryResult && !(queryResult == rhs.queryResult))
+      return false;
+    if (__isset.moreData != rhs.__isset.moreData)
+      return false;
+    else if (__isset.moreData && !(moreData == rhs.moreData))
       return false;
     return true;
   }
@@ -527,8 +565,7 @@ void swap(TSOpenSessionResp &a, TSOpenSessionResp &b);
 std::ostream& operator<<(std::ostream& out, const TSOpenSessionResp& obj);
 
 typedef struct _TSOpenSessionReq__isset {
-  _TSOpenSessionReq__isset() : username(false), password(false), configuration(false) {}
-  bool username :1;
+  _TSOpenSessionReq__isset() : password(false), configuration(false) {}
   bool password :1;
   bool configuration :1;
 } _TSOpenSessionReq__isset;
@@ -572,9 +609,7 @@ class TSOpenSessionReq : public virtual ::apache::thrift::TBase {
       return false;
     if (!(zoneId == rhs.zoneId))
       return false;
-    if (__isset.username != rhs.__isset.username)
-      return false;
-    else if (__isset.username && !(username == rhs.username))
+    if (!(username == rhs.username))
       return false;
     if (__isset.password != rhs.__isset.password)
       return false;
@@ -971,9 +1006,11 @@ void swap(TSFetchResultsReq &a, TSFetchResultsReq &b);
 std::ostream& operator<<(std::ostream& out, const TSFetchResultsReq& obj);
 
 typedef struct _TSFetchResultsResp__isset {
-  _TSFetchResultsResp__isset() : queryDataSet(false), nonAlignQueryDataSet(false) {}
+  _TSFetchResultsResp__isset() : queryDataSet(false), nonAlignQueryDataSet(false), queryResult(false), moreData(false) {}
   bool queryDataSet :1;
   bool nonAlignQueryDataSet :1;
+  bool queryResult :1;
+  bool moreData :1;
 } _TSFetchResultsResp__isset;
 
 class TSFetchResultsResp : public virtual ::apache::thrift::TBase {
@@ -981,7 +1018,7 @@ class TSFetchResultsResp : public virtual ::apache::thrift::TBase {
 
   TSFetchResultsResp(const TSFetchResultsResp&);
   TSFetchResultsResp& operator=(const TSFetchResultsResp&);
-  TSFetchResultsResp() : hasResultSet(0), isAlign(0) {
+  TSFetchResultsResp() : hasResultSet(0), isAlign(0), moreData(0) {
   }
 
   virtual ~TSFetchResultsResp() noexcept;
@@ -990,6 +1027,8 @@ class TSFetchResultsResp : public virtual ::apache::thrift::TBase {
   bool isAlign;
   TSQueryDataSet queryDataSet;
   TSQueryNonAlignDataSet nonAlignQueryDataSet;
+  std::vector<std::string>  queryResult;
+  bool moreData;
 
   _TSFetchResultsResp__isset __isset;
 
@@ -1002,6 +1041,10 @@ class TSFetchResultsResp : public virtual ::apache::thrift::TBase {
   void __set_queryDataSet(const TSQueryDataSet& val);
 
   void __set_nonAlignQueryDataSet(const TSQueryNonAlignDataSet& val);
+
+  void __set_queryResult(const std::vector<std::string> & val);
+
+  void __set_moreData(const bool val);
 
   bool operator == (const TSFetchResultsResp & rhs) const
   {
@@ -1018,6 +1061,14 @@ class TSFetchResultsResp : public virtual ::apache::thrift::TBase {
     if (__isset.nonAlignQueryDataSet != rhs.__isset.nonAlignQueryDataSet)
       return false;
     else if (__isset.nonAlignQueryDataSet && !(nonAlignQueryDataSet == rhs.nonAlignQueryDataSet))
+      return false;
+    if (__isset.queryResult != rhs.__isset.queryResult)
+      return false;
+    else if (__isset.queryResult && !(queryResult == rhs.queryResult))
+      return false;
+    if (__isset.moreData != rhs.__isset.moreData)
+      return false;
+    else if (__isset.moreData && !(moreData == rhs.moreData))
       return false;
     return true;
   }
@@ -1385,9 +1436,8 @@ void swap(TSInsertStringRecordReq &a, TSInsertStringRecordReq &b);
 std::ostream& operator<<(std::ostream& out, const TSInsertStringRecordReq& obj);
 
 typedef struct _TSInsertTabletReq__isset {
-  _TSInsertTabletReq__isset() : isAligned(false), tags(false) {}
+  _TSInsertTabletReq__isset() : isAligned(false) {}
   bool isAligned :1;
-  bool tags :1;
 } _TSInsertTabletReq__isset;
 
 class TSInsertTabletReq : public virtual ::apache::thrift::TBase {
@@ -1407,7 +1457,6 @@ class TSInsertTabletReq : public virtual ::apache::thrift::TBase {
   std::vector<int32_t>  types;
   int32_t size;
   bool isAligned;
-  std::vector<std::map<std::string, std::string> >  tags;
 
   _TSInsertTabletReq__isset __isset;
 
@@ -1426,8 +1475,6 @@ class TSInsertTabletReq : public virtual ::apache::thrift::TBase {
   void __set_size(const int32_t val);
 
   void __set_isAligned(const bool val);
-
-  void __set_tags(const std::vector<std::map<std::string, std::string> > & val);
 
   bool operator == (const TSInsertTabletReq & rhs) const
   {
@@ -1449,10 +1496,6 @@ class TSInsertTabletReq : public virtual ::apache::thrift::TBase {
       return false;
     else if (__isset.isAligned && !(isAligned == rhs.isAligned))
       return false;
-    if (__isset.tags != rhs.__isset.tags)
-      return false;
-    else if (__isset.tags && !(tags == rhs.tags))
-      return false;
     return true;
   }
   bool operator != (const TSInsertTabletReq &rhs) const {
@@ -1472,9 +1515,8 @@ void swap(TSInsertTabletReq &a, TSInsertTabletReq &b);
 std::ostream& operator<<(std::ostream& out, const TSInsertTabletReq& obj);
 
 typedef struct _TSInsertTabletsReq__isset {
-  _TSInsertTabletsReq__isset() : isAligned(false), tagsList(false) {}
+  _TSInsertTabletsReq__isset() : isAligned(false) {}
   bool isAligned :1;
-  bool tagsList :1;
 } _TSInsertTabletsReq__isset;
 
 class TSInsertTabletsReq : public virtual ::apache::thrift::TBase {
@@ -1494,7 +1536,6 @@ class TSInsertTabletsReq : public virtual ::apache::thrift::TBase {
   std::vector<std::vector<int32_t> >  typesList;
   std::vector<int32_t>  sizeList;
   bool isAligned;
-  std::vector<std::vector<std::map<std::string, std::string> > >  tagsList;
 
   _TSInsertTabletsReq__isset __isset;
 
@@ -1513,8 +1554,6 @@ class TSInsertTabletsReq : public virtual ::apache::thrift::TBase {
   void __set_sizeList(const std::vector<int32_t> & val);
 
   void __set_isAligned(const bool val);
-
-  void __set_tagsList(const std::vector<std::vector<std::map<std::string, std::string> > > & val);
 
   bool operator == (const TSInsertTabletsReq & rhs) const
   {
@@ -1535,10 +1574,6 @@ class TSInsertTabletsReq : public virtual ::apache::thrift::TBase {
     if (__isset.isAligned != rhs.__isset.isAligned)
       return false;
     else if (__isset.isAligned && !(isAligned == rhs.isAligned))
-      return false;
-    if (__isset.tagsList != rhs.__isset.tagsList)
-      return false;
-    else if (__isset.tagsList && !(tagsList == rhs.tagsList))
       return false;
     return true;
   }
@@ -2249,6 +2284,110 @@ void swap(TSLastDataQueryReq &a, TSLastDataQueryReq &b);
 
 std::ostream& operator<<(std::ostream& out, const TSLastDataQueryReq& obj);
 
+typedef struct _TSAggregationQueryReq__isset {
+  _TSAggregationQueryReq__isset() : startTime(false), endTime(false), interval(false), slidingStep(false), fetchSize(false), timeout(false) {}
+  bool startTime :1;
+  bool endTime :1;
+  bool interval :1;
+  bool slidingStep :1;
+  bool fetchSize :1;
+  bool timeout :1;
+} _TSAggregationQueryReq__isset;
+
+class TSAggregationQueryReq : public virtual ::apache::thrift::TBase {
+ public:
+
+  TSAggregationQueryReq(const TSAggregationQueryReq&);
+  TSAggregationQueryReq& operator=(const TSAggregationQueryReq&);
+  TSAggregationQueryReq() : sessionId(0), statementId(0), startTime(0), endTime(0), interval(0), slidingStep(0), fetchSize(0), timeout(0) {
+  }
+
+  virtual ~TSAggregationQueryReq() noexcept;
+  int64_t sessionId;
+  int64_t statementId;
+  std::vector<std::string>  paths;
+  std::vector< ::TAggregationType::type>  aggregations;
+  int64_t startTime;
+  int64_t endTime;
+  int64_t interval;
+  int64_t slidingStep;
+  int32_t fetchSize;
+  int64_t timeout;
+
+  _TSAggregationQueryReq__isset __isset;
+
+  void __set_sessionId(const int64_t val);
+
+  void __set_statementId(const int64_t val);
+
+  void __set_paths(const std::vector<std::string> & val);
+
+  void __set_aggregations(const std::vector< ::TAggregationType::type> & val);
+
+  void __set_startTime(const int64_t val);
+
+  void __set_endTime(const int64_t val);
+
+  void __set_interval(const int64_t val);
+
+  void __set_slidingStep(const int64_t val);
+
+  void __set_fetchSize(const int32_t val);
+
+  void __set_timeout(const int64_t val);
+
+  bool operator == (const TSAggregationQueryReq & rhs) const
+  {
+    if (!(sessionId == rhs.sessionId))
+      return false;
+    if (!(statementId == rhs.statementId))
+      return false;
+    if (!(paths == rhs.paths))
+      return false;
+    if (!(aggregations == rhs.aggregations))
+      return false;
+    if (__isset.startTime != rhs.__isset.startTime)
+      return false;
+    else if (__isset.startTime && !(startTime == rhs.startTime))
+      return false;
+    if (__isset.endTime != rhs.__isset.endTime)
+      return false;
+    else if (__isset.endTime && !(endTime == rhs.endTime))
+      return false;
+    if (__isset.interval != rhs.__isset.interval)
+      return false;
+    else if (__isset.interval && !(interval == rhs.interval))
+      return false;
+    if (__isset.slidingStep != rhs.__isset.slidingStep)
+      return false;
+    else if (__isset.slidingStep && !(slidingStep == rhs.slidingStep))
+      return false;
+    if (__isset.fetchSize != rhs.__isset.fetchSize)
+      return false;
+    else if (__isset.fetchSize && !(fetchSize == rhs.fetchSize))
+      return false;
+    if (__isset.timeout != rhs.__isset.timeout)
+      return false;
+    else if (__isset.timeout && !(timeout == rhs.timeout))
+      return false;
+    return true;
+  }
+  bool operator != (const TSAggregationQueryReq &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSAggregationQueryReq & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TSAggregationQueryReq &a, TSAggregationQueryReq &b);
+
+std::ostream& operator<<(std::ostream& out, const TSAggregationQueryReq& obj);
+
 typedef struct _TSCreateMultiTimeseriesReq__isset {
   _TSCreateMultiTimeseriesReq__isset() : propsList(false), tagsList(false), attributesList(false), measurementAliasList(false) {}
   bool propsList :1;
@@ -2343,7 +2482,7 @@ void swap(TSCreateMultiTimeseriesReq &a, TSCreateMultiTimeseriesReq &b);
 std::ostream& operator<<(std::ostream& out, const TSCreateMultiTimeseriesReq& obj);
 
 typedef struct _ServerProperties__isset {
-  _ServerProperties__isset() : maxConcurrentClientNum(false), watermarkSecretKey(false), watermarkBitString(false), watermarkParamMarkRate(false), watermarkParamMaxRightBit(false), thriftMaxFrameSize(false), isReadOnly(false), buildInfo(false) {}
+  _ServerProperties__isset() : maxConcurrentClientNum(false), watermarkSecretKey(false), watermarkBitString(false), watermarkParamMarkRate(false), watermarkParamMaxRightBit(false), thriftMaxFrameSize(false), isReadOnly(false), buildInfo(false), logo(false) {}
   bool maxConcurrentClientNum :1;
   bool watermarkSecretKey :1;
   bool watermarkBitString :1;
@@ -2352,6 +2491,7 @@ typedef struct _ServerProperties__isset {
   bool thriftMaxFrameSize :1;
   bool isReadOnly :1;
   bool buildInfo :1;
+  bool logo :1;
 } _ServerProperties__isset;
 
 class ServerProperties : public virtual ::apache::thrift::TBase {
@@ -2359,7 +2499,7 @@ class ServerProperties : public virtual ::apache::thrift::TBase {
 
   ServerProperties(const ServerProperties&);
   ServerProperties& operator=(const ServerProperties&);
-  ServerProperties() : version(), timestampPrecision(), maxConcurrentClientNum(0), watermarkSecretKey(), watermarkBitString(), watermarkParamMarkRate(0), watermarkParamMaxRightBit(0), thriftMaxFrameSize(0), isReadOnly(0), buildInfo() {
+  ServerProperties() : version(), timestampPrecision(), maxConcurrentClientNum(0), watermarkSecretKey(), watermarkBitString(), watermarkParamMarkRate(0), watermarkParamMaxRightBit(0), thriftMaxFrameSize(0), isReadOnly(0), buildInfo(), logo() {
   }
 
   virtual ~ServerProperties() noexcept;
@@ -2374,6 +2514,7 @@ class ServerProperties : public virtual ::apache::thrift::TBase {
   int32_t thriftMaxFrameSize;
   bool isReadOnly;
   std::string buildInfo;
+  std::string logo;
 
   _ServerProperties__isset __isset;
 
@@ -2398,6 +2539,8 @@ class ServerProperties : public virtual ::apache::thrift::TBase {
   void __set_isReadOnly(const bool val);
 
   void __set_buildInfo(const std::string& val);
+
+  void __set_logo(const std::string& val);
 
   bool operator == (const ServerProperties & rhs) const
   {
@@ -2436,6 +2579,10 @@ class ServerProperties : public virtual ::apache::thrift::TBase {
     if (__isset.buildInfo != rhs.__isset.buildInfo)
       return false;
     else if (__isset.buildInfo && !(buildInfo == rhs.buildInfo))
+      return false;
+    if (__isset.logo != rhs.__isset.logo)
+      return false;
+    else if (__isset.logo && !(logo == rhs.logo))
       return false;
     return true;
   }
@@ -2612,260 +2759,6 @@ class TSAppendSchemaTemplateReq : public virtual ::apache::thrift::TBase {
 void swap(TSAppendSchemaTemplateReq &a, TSAppendSchemaTemplateReq &b);
 
 std::ostream& operator<<(std::ostream& out, const TSAppendSchemaTemplateReq& obj);
-
-typedef struct _TSPhysicalPlanReq__isset {
-  _TSPhysicalPlanReq__isset() : version(false) {}
-  bool version :1;
-} _TSPhysicalPlanReq__isset;
-
-class TSPhysicalPlanReq : public virtual ::apache::thrift::TBase {
- public:
-
-  TSPhysicalPlanReq(const TSPhysicalPlanReq&);
-  TSPhysicalPlanReq& operator=(const TSPhysicalPlanReq&);
-  TSPhysicalPlanReq() : version(), planBytes() {
-  }
-
-  virtual ~TSPhysicalPlanReq() noexcept;
-  std::string version;
-  std::string planBytes;
-
-  _TSPhysicalPlanReq__isset __isset;
-
-  void __set_version(const std::string& val);
-
-  void __set_planBytes(const std::string& val);
-
-  bool operator == (const TSPhysicalPlanReq & rhs) const
-  {
-    if (__isset.version != rhs.__isset.version)
-      return false;
-    else if (__isset.version && !(version == rhs.version))
-      return false;
-    if (!(planBytes == rhs.planBytes))
-      return false;
-    return true;
-  }
-  bool operator != (const TSPhysicalPlanReq &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TSPhysicalPlanReq & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(TSPhysicalPlanReq &a, TSPhysicalPlanReq &b);
-
-std::ostream& operator<<(std::ostream& out, const TSPhysicalPlanReq& obj);
-
-typedef struct _TSNodeStatusReq__isset {
-  _TSNodeStatusReq__isset() : version(false), needWalDirMaxSize(false), needWalDirSize(false), needWalPartitionFreeSize(false), needRpcDelay(false), needWritePoolsQueueSize(false), needReadPoolsQueueSize(false), needReplicationRunningStatus(false) {}
-  bool version :1;
-  bool needWalDirMaxSize :1;
-  bool needWalDirSize :1;
-  bool needWalPartitionFreeSize :1;
-  bool needRpcDelay :1;
-  bool needWritePoolsQueueSize :1;
-  bool needReadPoolsQueueSize :1;
-  bool needReplicationRunningStatus :1;
-} _TSNodeStatusReq__isset;
-
-class TSNodeStatusReq : public virtual ::apache::thrift::TBase {
- public:
-
-  TSNodeStatusReq(const TSNodeStatusReq&);
-  TSNodeStatusReq& operator=(const TSNodeStatusReq&);
-  TSNodeStatusReq() : version(), needWalDirMaxSize(0), needWalDirSize(0), needWalPartitionFreeSize(0), needRpcDelay(0), needWritePoolsQueueSize(0), needReadPoolsQueueSize(0), needReplicationRunningStatus(0) {
-  }
-
-  virtual ~TSNodeStatusReq() noexcept;
-  std::string version;
-  bool needWalDirMaxSize;
-  bool needWalDirSize;
-  bool needWalPartitionFreeSize;
-  bool needRpcDelay;
-  bool needWritePoolsQueueSize;
-  bool needReadPoolsQueueSize;
-  bool needReplicationRunningStatus;
-
-  _TSNodeStatusReq__isset __isset;
-
-  void __set_version(const std::string& val);
-
-  void __set_needWalDirMaxSize(const bool val);
-
-  void __set_needWalDirSize(const bool val);
-
-  void __set_needWalPartitionFreeSize(const bool val);
-
-  void __set_needRpcDelay(const bool val);
-
-  void __set_needWritePoolsQueueSize(const bool val);
-
-  void __set_needReadPoolsQueueSize(const bool val);
-
-  void __set_needReplicationRunningStatus(const bool val);
-
-  bool operator == (const TSNodeStatusReq & rhs) const
-  {
-    if (__isset.version != rhs.__isset.version)
-      return false;
-    else if (__isset.version && !(version == rhs.version))
-      return false;
-    if (__isset.needWalDirMaxSize != rhs.__isset.needWalDirMaxSize)
-      return false;
-    else if (__isset.needWalDirMaxSize && !(needWalDirMaxSize == rhs.needWalDirMaxSize))
-      return false;
-    if (__isset.needWalDirSize != rhs.__isset.needWalDirSize)
-      return false;
-    else if (__isset.needWalDirSize && !(needWalDirSize == rhs.needWalDirSize))
-      return false;
-    if (__isset.needWalPartitionFreeSize != rhs.__isset.needWalPartitionFreeSize)
-      return false;
-    else if (__isset.needWalPartitionFreeSize && !(needWalPartitionFreeSize == rhs.needWalPartitionFreeSize))
-      return false;
-    if (__isset.needRpcDelay != rhs.__isset.needRpcDelay)
-      return false;
-    else if (__isset.needRpcDelay && !(needRpcDelay == rhs.needRpcDelay))
-      return false;
-    if (__isset.needWritePoolsQueueSize != rhs.__isset.needWritePoolsQueueSize)
-      return false;
-    else if (__isset.needWritePoolsQueueSize && !(needWritePoolsQueueSize == rhs.needWritePoolsQueueSize))
-      return false;
-    if (__isset.needReadPoolsQueueSize != rhs.__isset.needReadPoolsQueueSize)
-      return false;
-    else if (__isset.needReadPoolsQueueSize && !(needReadPoolsQueueSize == rhs.needReadPoolsQueueSize))
-      return false;
-    if (__isset.needReplicationRunningStatus != rhs.__isset.needReplicationRunningStatus)
-      return false;
-    else if (__isset.needReplicationRunningStatus && !(needReplicationRunningStatus == rhs.needReplicationRunningStatus))
-      return false;
-    return true;
-  }
-  bool operator != (const TSNodeStatusReq &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TSNodeStatusReq & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(TSNodeStatusReq &a, TSNodeStatusReq &b);
-
-std::ostream& operator<<(std::ostream& out, const TSNodeStatusReq& obj);
-
-typedef struct _TSNodeStatusResp__isset {
-  _TSNodeStatusResp__isset() : version(false), walDirMaxSizeMB(false), walDirSizeMB(false), walPartitionFreeMB(false), rpcDelay(false), writePoolsQueueSizeStr(false), readPoolsQueueSizeStr(false), replicationRunning(false) {}
-  bool version :1;
-  bool walDirMaxSizeMB :1;
-  bool walDirSizeMB :1;
-  bool walPartitionFreeMB :1;
-  bool rpcDelay :1;
-  bool writePoolsQueueSizeStr :1;
-  bool readPoolsQueueSizeStr :1;
-  bool replicationRunning :1;
-} _TSNodeStatusResp__isset;
-
-class TSNodeStatusResp : public virtual ::apache::thrift::TBase {
- public:
-
-  TSNodeStatusResp(const TSNodeStatusResp&);
-  TSNodeStatusResp& operator=(const TSNodeStatusResp&);
-  TSNodeStatusResp() : version(), walDirMaxSizeMB(0), walDirSizeMB(0), walPartitionFreeMB(0), rpcDelay(0), writePoolsQueueSizeStr(), readPoolsQueueSizeStr(), replicationRunning(0) {
-  }
-
-  virtual ~TSNodeStatusResp() noexcept;
-  std::string version;
-   ::TSStatus status;
-  int64_t walDirMaxSizeMB;
-  int64_t walDirSizeMB;
-  int64_t walPartitionFreeMB;
-  int64_t rpcDelay;
-  std::string writePoolsQueueSizeStr;
-  std::string readPoolsQueueSizeStr;
-  bool replicationRunning;
-
-  _TSNodeStatusResp__isset __isset;
-
-  void __set_version(const std::string& val);
-
-  void __set_status(const  ::TSStatus& val);
-
-  void __set_walDirMaxSizeMB(const int64_t val);
-
-  void __set_walDirSizeMB(const int64_t val);
-
-  void __set_walPartitionFreeMB(const int64_t val);
-
-  void __set_rpcDelay(const int64_t val);
-
-  void __set_writePoolsQueueSizeStr(const std::string& val);
-
-  void __set_readPoolsQueueSizeStr(const std::string& val);
-
-  void __set_replicationRunning(const bool val);
-
-  bool operator == (const TSNodeStatusResp & rhs) const
-  {
-    if (__isset.version != rhs.__isset.version)
-      return false;
-    else if (__isset.version && !(version == rhs.version))
-      return false;
-    if (!(status == rhs.status))
-      return false;
-    if (__isset.walDirMaxSizeMB != rhs.__isset.walDirMaxSizeMB)
-      return false;
-    else if (__isset.walDirMaxSizeMB && !(walDirMaxSizeMB == rhs.walDirMaxSizeMB))
-      return false;
-    if (__isset.walDirSizeMB != rhs.__isset.walDirSizeMB)
-      return false;
-    else if (__isset.walDirSizeMB && !(walDirSizeMB == rhs.walDirSizeMB))
-      return false;
-    if (__isset.walPartitionFreeMB != rhs.__isset.walPartitionFreeMB)
-      return false;
-    else if (__isset.walPartitionFreeMB && !(walPartitionFreeMB == rhs.walPartitionFreeMB))
-      return false;
-    if (__isset.rpcDelay != rhs.__isset.rpcDelay)
-      return false;
-    else if (__isset.rpcDelay && !(rpcDelay == rhs.rpcDelay))
-      return false;
-    if (__isset.writePoolsQueueSizeStr != rhs.__isset.writePoolsQueueSizeStr)
-      return false;
-    else if (__isset.writePoolsQueueSizeStr && !(writePoolsQueueSizeStr == rhs.writePoolsQueueSizeStr))
-      return false;
-    if (__isset.readPoolsQueueSizeStr != rhs.__isset.readPoolsQueueSizeStr)
-      return false;
-    else if (__isset.readPoolsQueueSizeStr && !(readPoolsQueueSizeStr == rhs.readPoolsQueueSizeStr))
-      return false;
-    if (__isset.replicationRunning != rhs.__isset.replicationRunning)
-      return false;
-    else if (__isset.replicationRunning && !(replicationRunning == rhs.replicationRunning))
-      return false;
-    return true;
-  }
-  bool operator != (const TSNodeStatusResp &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const TSNodeStatusResp & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-  virtual void printTo(std::ostream& out) const;
-};
-
-void swap(TSNodeStatusResp &a, TSNodeStatusResp &b);
-
-std::ostream& operator<<(std::ostream& out, const TSNodeStatusResp& obj);
 
 
 class TSPruneSchemaTemplateReq : public virtual ::apache::thrift::TBase {
@@ -3128,6 +3021,295 @@ class TSDropSchemaTemplateReq : public virtual ::apache::thrift::TBase {
 void swap(TSDropSchemaTemplateReq &a, TSDropSchemaTemplateReq &b);
 
 std::ostream& operator<<(std::ostream& out, const TSDropSchemaTemplateReq& obj);
+
+
+class TCreateTimeseriesOfSchemaTemplateReq : public virtual ::apache::thrift::TBase {
+ public:
+
+  TCreateTimeseriesOfSchemaTemplateReq(const TCreateTimeseriesOfSchemaTemplateReq&);
+  TCreateTimeseriesOfSchemaTemplateReq& operator=(const TCreateTimeseriesOfSchemaTemplateReq&);
+  TCreateTimeseriesOfSchemaTemplateReq() : sessionId(0) {
+  }
+
+  virtual ~TCreateTimeseriesOfSchemaTemplateReq() noexcept;
+  int64_t sessionId;
+  std::vector<std::string>  devicePathList;
+
+  void __set_sessionId(const int64_t val);
+
+  void __set_devicePathList(const std::vector<std::string> & val);
+
+  bool operator == (const TCreateTimeseriesOfSchemaTemplateReq & rhs) const
+  {
+    if (!(sessionId == rhs.sessionId))
+      return false;
+    if (!(devicePathList == rhs.devicePathList))
+      return false;
+    return true;
+  }
+  bool operator != (const TCreateTimeseriesOfSchemaTemplateReq &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TCreateTimeseriesOfSchemaTemplateReq & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TCreateTimeseriesOfSchemaTemplateReq &a, TCreateTimeseriesOfSchemaTemplateReq &b);
+
+std::ostream& operator<<(std::ostream& out, const TCreateTimeseriesOfSchemaTemplateReq& obj);
+
+
+class TSyncIdentityInfo : public virtual ::apache::thrift::TBase {
+ public:
+
+  TSyncIdentityInfo(const TSyncIdentityInfo&);
+  TSyncIdentityInfo& operator=(const TSyncIdentityInfo&);
+  TSyncIdentityInfo() : pipeName(), createTime(0), version(), database() {
+  }
+
+  virtual ~TSyncIdentityInfo() noexcept;
+  std::string pipeName;
+  int64_t createTime;
+  std::string version;
+  std::string database;
+
+  void __set_pipeName(const std::string& val);
+
+  void __set_createTime(const int64_t val);
+
+  void __set_version(const std::string& val);
+
+  void __set_database(const std::string& val);
+
+  bool operator == (const TSyncIdentityInfo & rhs) const
+  {
+    if (!(pipeName == rhs.pipeName))
+      return false;
+    if (!(createTime == rhs.createTime))
+      return false;
+    if (!(version == rhs.version))
+      return false;
+    if (!(database == rhs.database))
+      return false;
+    return true;
+  }
+  bool operator != (const TSyncIdentityInfo &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSyncIdentityInfo & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TSyncIdentityInfo &a, TSyncIdentityInfo &b);
+
+std::ostream& operator<<(std::ostream& out, const TSyncIdentityInfo& obj);
+
+
+class TSyncTransportMetaInfo : public virtual ::apache::thrift::TBase {
+ public:
+
+  TSyncTransportMetaInfo(const TSyncTransportMetaInfo&);
+  TSyncTransportMetaInfo& operator=(const TSyncTransportMetaInfo&);
+  TSyncTransportMetaInfo() : fileName(), startIndex(0) {
+  }
+
+  virtual ~TSyncTransportMetaInfo() noexcept;
+  std::string fileName;
+  int64_t startIndex;
+
+  void __set_fileName(const std::string& val);
+
+  void __set_startIndex(const int64_t val);
+
+  bool operator == (const TSyncTransportMetaInfo & rhs) const
+  {
+    if (!(fileName == rhs.fileName))
+      return false;
+    if (!(startIndex == rhs.startIndex))
+      return false;
+    return true;
+  }
+  bool operator != (const TSyncTransportMetaInfo &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSyncTransportMetaInfo & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TSyncTransportMetaInfo &a, TSyncTransportMetaInfo &b);
+
+std::ostream& operator<<(std::ostream& out, const TSyncTransportMetaInfo& obj);
+
+typedef struct _TSBackupConfigurationResp__isset {
+  _TSBackupConfigurationResp__isset() : enableOperationSync(false), secondaryAddress(false), secondaryPort(false) {}
+  bool enableOperationSync :1;
+  bool secondaryAddress :1;
+  bool secondaryPort :1;
+} _TSBackupConfigurationResp__isset;
+
+class TSBackupConfigurationResp : public virtual ::apache::thrift::TBase {
+ public:
+
+  TSBackupConfigurationResp(const TSBackupConfigurationResp&);
+  TSBackupConfigurationResp& operator=(const TSBackupConfigurationResp&);
+  TSBackupConfigurationResp() : enableOperationSync(0), secondaryAddress(), secondaryPort(0) {
+  }
+
+  virtual ~TSBackupConfigurationResp() noexcept;
+   ::TSStatus status;
+  bool enableOperationSync;
+  std::string secondaryAddress;
+  int32_t secondaryPort;
+
+  _TSBackupConfigurationResp__isset __isset;
+
+  void __set_status(const  ::TSStatus& val);
+
+  void __set_enableOperationSync(const bool val);
+
+  void __set_secondaryAddress(const std::string& val);
+
+  void __set_secondaryPort(const int32_t val);
+
+  bool operator == (const TSBackupConfigurationResp & rhs) const
+  {
+    if (!(status == rhs.status))
+      return false;
+    if (__isset.enableOperationSync != rhs.__isset.enableOperationSync)
+      return false;
+    else if (__isset.enableOperationSync && !(enableOperationSync == rhs.enableOperationSync))
+      return false;
+    if (__isset.secondaryAddress != rhs.__isset.secondaryAddress)
+      return false;
+    else if (__isset.secondaryAddress && !(secondaryAddress == rhs.secondaryAddress))
+      return false;
+    if (__isset.secondaryPort != rhs.__isset.secondaryPort)
+      return false;
+    else if (__isset.secondaryPort && !(secondaryPort == rhs.secondaryPort))
+      return false;
+    return true;
+  }
+  bool operator != (const TSBackupConfigurationResp &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSBackupConfigurationResp & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TSBackupConfigurationResp &a, TSBackupConfigurationResp &b);
+
+std::ostream& operator<<(std::ostream& out, const TSBackupConfigurationResp& obj);
+
+
+class TSConnectionInfo : public virtual ::apache::thrift::TBase {
+ public:
+
+  TSConnectionInfo(const TSConnectionInfo&);
+  TSConnectionInfo& operator=(const TSConnectionInfo&);
+  TSConnectionInfo() : userName(), logInTime(0), connectionId(), type((TSConnectionType::type)0) {
+  }
+
+  virtual ~TSConnectionInfo() noexcept;
+  std::string userName;
+  int64_t logInTime;
+  std::string connectionId;
+  /**
+   * 
+   * @see TSConnectionType
+   */
+  TSConnectionType::type type;
+
+  void __set_userName(const std::string& val);
+
+  void __set_logInTime(const int64_t val);
+
+  void __set_connectionId(const std::string& val);
+
+  void __set_type(const TSConnectionType::type val);
+
+  bool operator == (const TSConnectionInfo & rhs) const
+  {
+    if (!(userName == rhs.userName))
+      return false;
+    if (!(logInTime == rhs.logInTime))
+      return false;
+    if (!(connectionId == rhs.connectionId))
+      return false;
+    if (!(type == rhs.type))
+      return false;
+    return true;
+  }
+  bool operator != (const TSConnectionInfo &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSConnectionInfo & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TSConnectionInfo &a, TSConnectionInfo &b);
+
+std::ostream& operator<<(std::ostream& out, const TSConnectionInfo& obj);
+
+
+class TSConnectionInfoResp : public virtual ::apache::thrift::TBase {
+ public:
+
+  TSConnectionInfoResp(const TSConnectionInfoResp&);
+  TSConnectionInfoResp& operator=(const TSConnectionInfoResp&);
+  TSConnectionInfoResp() {
+  }
+
+  virtual ~TSConnectionInfoResp() noexcept;
+  std::vector<TSConnectionInfo>  connectionInfoList;
+
+  void __set_connectionInfoList(const std::vector<TSConnectionInfo> & val);
+
+  bool operator == (const TSConnectionInfoResp & rhs) const
+  {
+    if (!(connectionInfoList == rhs.connectionInfoList))
+      return false;
+    return true;
+  }
+  bool operator != (const TSConnectionInfoResp &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const TSConnectionInfoResp & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(TSConnectionInfoResp &a, TSConnectionInfoResp &b);
+
+std::ostream& operator<<(std::ostream& out, const TSConnectionInfoResp& obj);
 
 
 
